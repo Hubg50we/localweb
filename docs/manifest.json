@@ -1,0 +1,25 @@
+{
+  "name": "HiAnime - Watch Anime Online Free",
+  "short_name": "HiAnime",
+  "description": "Stream high-speed anime in HD with zero ads, live airing schedules, and multi-server playback.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#11101a",
+  "theme_color": "#ffbade",
+  "icons": [
+    {
+      "src": "https://api.dicebear.com/7.x/bottts/svg?seed=otaku",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://api.dicebear.com/7.x/bottts/svg?seed=otaku",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "multimedia", "anime"]
+}

@@ -1,0 +1,92 @@
+// HiAnime v5.0 Enterprise Service Worker
+const CACHE_NAME = 'hianime-v5-enterprise-v1';
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/app.js',
+  '/manifest.json',
+  '/data/anime-data.js'
+];
+
+// Install: Cache critical static shell
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[Service Worker] Caching static app shell');
+      return cache.addAll(STATIC_ASSETS);
+    }).then(() => self.skipWaiting())
+  );
+});
+
+// Activate: Clean up older cache versions
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((name) => {
+          if (name !== CACHE_NAME) {
+            console.log('[Service Worker] Removing old cache:', name);
+            return caches.delete(name);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Fetch: Stale-While-Revalidate for static assets, Network-First for APIs
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // Ignore non-GET requests and external media/embeds
+  if (request.method !== 'GET') return;
+  if (!url.origin.includes(self.location.origin)) return;
+
+  // Strategy A: Network-First for API routes (/api/anime, /api/live/schedule)
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) {
+            console.log('[Service Worker] Serving cached API response for:', url.pathname);
+            return cached;
+          }
+          return new Response(JSON.stringify({ success: false, offline: true, message: 'You are currently offline.' }), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+        })
+    );
+    return;
+  }
+
+  // Strategy B: Stale-While-Revalidate for static assets
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      const fetchPromise = fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseClone);
+          });
+        }
+        return networkResponse;
+      }).catch((err) => {
+        console.warn('[Service Worker] Static fetch failed (offline):', err);
+      });
+
+      return cachedResponse || fetchPromise;
+    })
+  );
+});

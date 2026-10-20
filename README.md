@@ -1,6 +1,9 @@
 # HiAnime LocalWeb v5.0 Enterprise
 
+🌐 **Live Web App (GitHub Pages)**: [https://hubg50we.github.io/localweb/](https://hubg50we.github.io/localweb/)
+
 [![HiAnime CI](https://github.com/Hubg50we/localweb/actions/workflows/ci.yml/badge.svg)](https://github.com/Hubg50we/localweb/actions/workflows/ci.yml)
+[![GitHub Pages](https://github.com/Hubg50we/localweb/actions/workflows/deploy-pages.yml/badge.svg)](https://hubg50we.github.io/localweb/)
 [![Node.js 20+](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
 [![Docker Ready](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
