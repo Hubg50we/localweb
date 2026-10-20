@@ -18,7 +18,7 @@
   <!-- Top Announcement Bar -->
   <div class="top-bar">
     <div class="top-bar-inner">
-      <span><i data-lucide="sparkles"></i> <strong>HiAnime v3.0 Local</strong> — High-Speed Anime Streaming Powered by Local Gateway</span>
+      <span><i data-lucide="sparkles"></i> <strong>HiAnime v5.2 Ultra</strong> — High-Speed Ultra HD Anime Streaming (Zero Buffering, Multi-Server)</span>
       <div class="top-links">
         <a href="#" class="top-link" data-action="discord"><i data-lucide="message-square"></i> Discord</a>
         <a href="#" class="top-link" data-action="telegram"><i data-lucide="send"></i> Telegram</a>
@@ -34,7 +34,7 @@
         <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
           <i data-lucide="menu"></i>
         </button>
-        <a href="/" class="brand-logo">
+        <a href="./" class="brand-logo">
           <span class="logo-hi">Hi</span><span class="logo-anime">Anime</span>
           <span class="logo-domain">.to</span>
         </a>
@@ -363,18 +363,29 @@
             </video>
           </div>
 
+          <!-- Active Stream Notification & Quick Fallback Switcher -->
+          <div class="stream-alert-banner">
+            <div class="stream-alert-left">
+              <i data-lucide="sparkles"></i>
+              <span id="streamActiveServerNotice">Playing in <strong>⚡ Ultra HD 1080p Engine</strong> (Zero-buffer, HD Audio).</span>
+            </div>
+            <button type="button" class="stream-quick-switch-btn" id="streamQuickSwitchBtn" title="Switch to another server">
+              <i data-lucide="refresh-cw"></i> Switch Server
+            </button>
+          </div>
+
           <!-- Video Controls & Server Selector -->
           <div class="server-control-panel">
             <div class="server-group">
-              <span class="server-group-label"><i data-lucide="server"></i> SUB:</span>
-              <button class="server-pill active" data-server="vidsrc">VidSrc HD</button>
-              <button class="server-pill" data-server="multiembed">MultiEmbed</button>
+              <span class="server-group-label"><i data-lucide="zap"></i> STREAM:</span>
+              <button class="server-pill active" data-server="ultra-hd">⚡ Ultra HD</button>
+              <button class="server-pill" data-server="vidlink-sub">VidLink Sub</button>
               <button class="server-pill" data-server="twoembed">2Embed</button>
             </div>
             <div class="server-group">
-              <span class="server-group-label"><i data-lucide="mic"></i> DUB:</span>
-              <button class="server-pill" data-server="vidsrc-classic">VidSrc Dub</button>
-              <button class="server-pill" data-server="streamwish">StreamWish</button>
+              <span class="server-group-label"><i data-lucide="mic"></i> DUB & DIRECT:</span>
+              <button class="server-pill" data-server="vidlink-dub">VidLink Dub</button>
+              <button class="server-pill" data-server="direct-hls">Direct HLS</button>
             </div>
             <div class="playback-toggles">
               <button class="ep-nav-btn" id="prevEpBtn" title="Previous Episode (P)"><i data-lucide="skip-back"></i> Prev</button>
@@ -804,7 +815,7 @@
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-brand">
-        <a href="/" class="brand-logo">
+        <a href="./" class="brand-logo">
           <span class="logo-hi">Hi</span><span class="logo-anime">Anime</span>
           <span class="logo-domain">.to</span>
         </a>

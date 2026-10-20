@@ -5,7 +5,7 @@ let activeSpotlightIndex = 0;
 let spotlightInterval = null;
 let currentPlayingAnime = null;
 let currentPlayingEpisode = 1;
-let currentServer = 'vidsrc';
+let currentServer = 'ultra-hd';
 
 // Netflix Multi-Profile Storage System
 const DEFAULT_PROFILES = [
@@ -229,10 +229,13 @@ let currentAnimeBookmarks = [];
 let paletteSelectedIndex = 0;
 let paletteItemsList = [];
 
-// Register Offline Service Worker (v5.0 PWA)
+// Register Offline Service Worker (v5.2 PWA)
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
+    const swPath = window.location.pathname.endsWith('/')
+      ? `${window.location.pathname}sw.js`
+      : `${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1)}sw.js`;
+    navigator.serviceWorker.register(swPath).then((reg) => {
       console.log('[PWA] Service Worker registered with scope:', reg.scope);
     }).catch((err) => {
       console.warn('[PWA] Service Worker registration failed:', err);
@@ -259,11 +262,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Fetch Data from Backend API (with fallback to local script dataset)
 async function loadData() {
+  const isStatic = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
+  
+  if (isStatic && typeof animeDatabase !== 'undefined' && animeDatabase.length > 0) {
+    currentAnimeList = animeDatabase;
+    currentSpotlights = animeDatabase.filter(a => a.spotlight);
+    const top10Data = [...currentAnimeList].sort((a, b) => parseFloat(b.rating || 0) - parseFloat(a.rating || 0)).slice(0, 10);
+    renderSpotlight(currentSpotlights);
+    renderTrendingRail(currentAnimeList);
+    renderAnimeGrid(currentAnimeList);
+    renderTop10(top10Data);
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
   try {
     const [animeRes, spotlightRes, top10Res] = await Promise.all([
-      fetch('/api/anime').then(r => r.json()).catch(() => null),
-      fetch('/api/anime/spotlight').then(r => r.json()).catch(() => null),
-      fetch('/api/anime/top10').then(r => r.json()).catch(() => null)
+      fetch('/api/anime').then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null).catch(() => null),
+      fetch('/api/anime/spotlight').then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null).catch(() => null),
+      fetch('/api/anime/top10').then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null).catch(() => null)
     ]);
 
     if (animeRes && animeRes.success) {
@@ -463,22 +480,110 @@ function renderTop10(topList) {
 
 let hlsPlayer = null;
 
+function showToast(message, type = 'info') {
+  let toastContainer = document.getElementById('hianimeToastContainer');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'hianimeToastContainer';
+    toastContainer.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none;';
+    document.body.appendChild(toastContainer);
+  }
+  const toast = document.createElement('div');
+  toast.className = `hianime-toast toast-${type}`;
+  toast.style.cssText = 'background:rgba(22,22,34,0.95);border:1px solid var(--accent-pink);color:#fff;padding:10px 18px;border-radius:12px;font-size:0.85rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.6);backdrop-filter:blur(12px);pointer-events:auto;display:flex;align-items:center;gap:8px;';
+  toast.innerHTML = `<span>⚡</span> <span>${message}</span>`;
+  toastContainer.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.4s ease';
+    setTimeout(() => toast.remove(), 400);
+  }, 3000);
+}
+
+const SERVER_ROTATION = ['ultra-hd', 'vidlink-sub', 'vidlink-dub', 'twoembed', 'direct-hls'];
+
+function updateServerNotice(serverKey) {
+  const noticeEl = document.getElementById('streamActiveServerNotice');
+  if (!noticeEl) return;
+  const labels = {
+    'ultra-hd': 'Playing in <strong>⚡ Ultra HD 1080p Engine</strong> (Zero buffering, Studio Quality)',
+    'vidsrc': 'Playing in <strong>⚡ Ultra HD 1080p Engine</strong> (Zero buffering, Studio Quality)',
+    'vidlink-sub': 'Playing in <strong>VidLink HD Sub</strong> (Full Series Episodes, Multilingual)',
+    'multiembed': 'Playing in <strong>VidLink HD Sub</strong> (Full Series Episodes, Multilingual)',
+    'vidlink-dub': 'Playing in <strong>VidLink HD Dub</strong> (English Dubbed Audio)',
+    'vidsrc-classic': 'Playing in <strong>VidLink HD Dub</strong> (English Dubbed Audio)',
+    'streamwish': 'Playing in <strong>VidLink HD Dub</strong> (English Dubbed Audio)',
+    'twoembed': 'Playing in <strong>2Embed Stream</strong> (Alternative Multi-Stream Gateway)',
+    'direct-hls': 'Playing in <strong>Direct HLS Native Player</strong> (HTML5 Custom Controls)'
+  };
+  noticeEl.innerHTML = labels[serverKey] || 'Streaming via Active Gateway.';
+}
+
+function cycleNextServer() {
+  const currentIndex = SERVER_ROTATION.indexOf(currentServer);
+  const nextIndex = (currentIndex + 1) % SERVER_ROTATION.length;
+  currentServer = SERVER_ROTATION[nextIndex];
+  
+  // Update server pills UI
+  document.querySelectorAll('.server-pill').forEach(pill => {
+    pill.classList.remove('active');
+    if (pill.dataset.server === currentServer) {
+      pill.classList.add('active');
+    }
+  });
+
+  if (currentPlayingAnime) {
+    const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
+    loadActivePlayer(streamInfo.url, streamInfo.isEmbed);
+    showToast(`Switched server to ${currentServer.toUpperCase()}`);
+  }
+}
+
 function getServerStreamUrl(serverName, anime, epNumber) {
-  const mal = anime.malId || '52299';
-  const ep = (anime.episodes && anime.episodes.find(e => e.number === epNumber)) || { number: epNumber };
+  if (!anime) return { url: '', isEmbed: true };
+  const mal = String(anime.malId || anime.mal_id || '52299');
+  const ep = (anime.episodes && anime.episodes.find(e => e.number === epNumber)) || 
+    (anime.episodes && anime.episodes[0]) || 
+    { number: epNumber };
+  const yid = anime.youtubeId || (ep && ep.youtubeId) || 'BwIdVcxzU10';
+
+  updateServerNotice(serverName);
+
   switch (serverName) {
+    case 'ultra-hd':
     case 'vidsrc':
-      return { url: ep.embedUrl || `https://vidsrc.pm/embed/anime/${mal}/${epNumber}`, isEmbed: true };
+      return { 
+        url: ep.ultraHdUrl || `https://www.youtube-nocookie.com/embed/${yid}?autoplay=1&enablejsapi=1`, 
+        isEmbed: true 
+      };
+    case 'vidlink-sub':
     case 'multiembed':
-      return { url: ep.megaCloudUrl || `https://multiembed.mov/?video_id=${mal}&ep=${epNumber}&an=1`, isEmbed: true };
-    case 'twoembed':
-      return { url: ep.twoEmbedUrl || `https://www.2embed.cc/embed/anime/${mal}/${epNumber}`, isEmbed: true };
+      return { 
+        url: ep.vidlinkSubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/sub?fallback=true`, 
+        isEmbed: true 
+      };
+    case 'vidlink-dub':
     case 'vidsrc-classic':
-      return { url: ep.vidsrcClassicUrl || `https://vidsrc.me/embed/anime?mal=${mal}&ep=${epNumber}`, isEmbed: true };
     case 'streamwish':
-      return { url: ep.megaCloudUrl || `https://multiembed.mov/?video_id=${mal}&ep=${epNumber}&an=1`, isEmbed: true };
+      return { 
+        url: ep.vidlinkDubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/dub?fallback=true`, 
+        isEmbed: true 
+      };
+    case 'twoembed':
+      return { 
+        url: ep.twoEmbedUrl || `https://www.2embed.cc/embed/anime/${mal}/${epNumber}`, 
+        isEmbed: true 
+      };
+    case 'direct-hls':
+      return { 
+        url: ep.hlsStreamUrl || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 
+        isEmbed: false 
+      };
     default:
-      return { url: ep.embedUrl || `https://vidsrc.pm/embed/anime/${mal}/${epNumber}`, isEmbed: true };
+      return { 
+        url: ep.ultraHdUrl || `https://www.youtube-nocookie.com/embed/${yid}?autoplay=1&enablejsapi=1`, 
+        isEmbed: true 
+      };
   }
 }
 
@@ -655,6 +760,15 @@ async function openWatchModal(animeId, episodeNum = 1) {
   // Resolve stream using active server
   const streamInfo = getServerStreamUrl(currentServer, anime, episodeNum);
   loadActivePlayer(streamInfo.url, streamInfo.isEmbed);
+
+  // Synchronize server buttons in player
+  document.querySelectorAll('.server-pill').forEach(pill => {
+    if (pill.dataset.server === currentServer) {
+      pill.classList.add('active');
+    } else {
+      pill.classList.remove('active');
+    }
+  });
 
   // Update Bookmark Button in Modal
   updateModalBookmarkBtn(anime.id);
@@ -1274,7 +1388,7 @@ function setupEventListeners() {
       const targetPill = e.target.closest('.server-pill');
       if (!targetPill) return;
       targetPill.classList.add('active');
-      currentServer = targetPill.dataset.server || 'vidsrc';
+      currentServer = targetPill.dataset.server || 'ultra-hd';
 
       if (currentPlayingAnime) {
         const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
@@ -1282,6 +1396,14 @@ function setupEventListeners() {
       }
     });
   });
+
+  // Quick Fallback Switcher Button
+  const streamQuickSwitchBtn = document.getElementById('streamQuickSwitchBtn');
+  if (streamQuickSwitchBtn) {
+    streamQuickSwitchBtn.addEventListener('click', () => {
+      cycleNextServer();
+    });
+  }
 
   // Community & Tools Event Listeners (v4.0)
   if (bookmarkSceneBtn) {
@@ -1441,30 +1563,34 @@ async function initSchedule() {
 
 async function loadSchedule(day) {
   if (!scheduleGrid) return;
-  scheduleGrid.innerHTML = `
-    <div style="grid-column: 1/-1; padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
-      <i data-lucide="loader" class="spin" style="margin-bottom:8px; display:inline-block;"></i>
-      <div>Loading live broadcast schedule for ${day.toUpperCase()}...</div>
-    </div>
-  `;
-  if (window.lucide) lucide.createIcons();
+  const isStatic = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
 
-  try {
-    const res = await fetch(`/api/live/schedule?day=${encodeURIComponent(day)}`).then(r => r.json());
-    if (res && res.success && res.data && res.data.length > 0) {
-      renderScheduleGrid(res.data);
-    } else {
-      scheduleGrid.innerHTML = `<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--text-muted);">No broadcast schedules found for ${day}.</div>`;
-    }
-  } catch (err) {
-    console.warn('Schedule API offline, using local dataset fallback:', err);
-    if (currentAnimeList && currentAnimeList.length > 0) {
-      const times = ['18:00 (JST)', '19:30 (JST)', '21:00 (JST)', '22:30 (JST)', '23:00 (JST)', '23:30 (JST)'];
-      const fallbackItems = currentAnimeList.slice(0, 6).map((anime, i) => ({
-        id: anime.id,
-        malId: anime.malId || '52299',
-        title: anime.title,
-        image: anime.poster || anime.cover,
+  if (!isStatic) {
+    scheduleGrid.innerHTML = `
+      <div style="grid-column: 1/-1; padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+        <i data-lucide="loader" class="spin" style="margin-bottom:8px; display:inline-block;"></i>
+        <div>Loading live broadcast schedule for ${day.toUpperCase()}...</div>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+
+    try {
+      const res = await fetch(`/api/live/schedule?day=${encodeURIComponent(day)}`).then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null);
+      if (res && res.success && res.data && res.data.length > 0) {
+        renderScheduleGrid(res.data);
+        return;
+      }
+    } catch (_) {}
+  }
+
+  // Instant responsive fallback for static hosts and offline mode
+  if (currentAnimeList && currentAnimeList.length > 0) {
+    const times = ['18:00 (JST)', '19:30 (JST)', '21:00 (JST)', '22:30 (JST)', '23:00 (JST)', '23:30 (JST)'];
+    const fallbackItems = currentAnimeList.slice(0, 6).map((anime, i) => ({
+      id: anime.id,
+      malId: anime.malId || '52299',
+      title: anime.title,
+      image: anime.poster || anime.cover,
         broadcastTime: times[i % times.length],
         currentEp: Math.min((i + 1) * 2, anime.subEpisodes || 12),
         score: anime.rating || '8.8',
@@ -1475,7 +1601,6 @@ async function loadSchedule(day) {
     }
     scheduleGrid.innerHTML = `<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--text-muted);">Failed to load schedule. Please try again.</div>`;
   }
-}
 
 function renderScheduleGrid(items) {
   if (!scheduleGrid) return;

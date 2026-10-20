@@ -1,12 +1,12 @@
-// HiAnime v5.0 Enterprise Service Worker
-const CACHE_NAME = 'hianime-v5-enterprise-v1';
+// HiAnime v5.2 Ultra Enterprise Service Worker
+const CACHE_NAME = 'hianime-v5-enterprise-v2';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js',
-  '/manifest.json',
-  '/data/anime-data.js'
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './manifest.json',
+  './data/anime-data.js'
 ];
 
 // Install: Cache critical static shell
