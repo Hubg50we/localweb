@@ -4,7 +4,8 @@
   "description": "HiAnime theme local anime streaming and discovery platform",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "tunnel": "npx --yes cloudflared tunnel --url http://localhost:3000"
   },
   "dependencies": {
     "@consumet/extensions": "^1.8.8",
