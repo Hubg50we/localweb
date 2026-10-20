@@ -3089,4 +3089,330 @@ body.high-contrast {
   background: rgba(255, 186, 222, 0.1);
 }
 
+/* ========================================================
+   Floating Draggable Picture-in-Picture Mini-Player
+   ======================================================== */
+.pip-btn-highlight {
+  background: rgba(0, 240, 255, 0.15) !important;
+  color: var(--accent-cyan) !important;
+  border-color: rgba(0, 240, 255, 0.35) !important;
+}
+.pip-btn-highlight:hover {
+  background: var(--accent-cyan) !important;
+  color: #11101a !important;
+}
+
+.floating-mini-player {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 360px;
+  z-index: 99998;
+  background: #141322;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px var(--accent-glow);
+  overflow: hidden;
+  display: none;
+  flex-direction: column;
+  transition: box-shadow 0.2s;
+}
+.floating-mini-player.active {
+  display: flex;
+}
+.floating-mini-player:hover {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 35px var(--accent-glow);
+}
+.mini-player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #1c1a30;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: grab;
+  user-select: none;
+}
+.mini-player-header:active {
+  cursor: grabbing;
+}
+.mini-player-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+.mini-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+.mini-ep-crumb {
+  font-size: 0.72rem;
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.mini-player-actions {
+  display: flex;
+  gap: 4px;
+}
+.mini-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+.mini-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.mini-screen-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+}
+.mini-screen-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.mini-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #141322;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.mini-ctrl-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #eee;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition-fast);
+}
+.mini-ctrl-btn:hover {
+  background: var(--accent-primary);
+  color: #11101a;
+  border-color: var(--accent-primary);
+}
+.mini-server-badge {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ========================================================
+   Netflix-Style "Who's Watching?" Profile Selection
+   ======================================================== */
+.who-watching-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.who-watching-modal.active {
+  display: flex;
+}
+.who-watching-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, #1c1a32 0%, #090812 100%);
+  backdrop-filter: blur(12px);
+}
+.who-watching-container {
+  position: relative;
+  text-align: center;
+  max-width: 820px;
+  width: 90%;
+  z-index: 2;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.who-watching-title {
+  font-size: 2.8rem;
+  font-weight: 800;
+  font-family: 'Space Grotesk', sans-serif;
+  color: #fff;
+  margin-bottom: 36px;
+  letter-spacing: -0.5px;
+}
+.profiles-grid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 32px;
+}
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s;
+  user-select: none;
+}
+.profile-card:hover {
+  transform: translateY(-6px);
+}
+.profile-avatar-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #1f1d35;
+  border: 3px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.profile-card:hover .profile-avatar-wrap {
+  border-color: #fff;
+  box-shadow: 0 0 25px var(--accent-glow);
+}
+.profile-card.active .profile-avatar-wrap {
+  border-color: var(--accent-primary);
+}
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-edit-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.6rem;
+}
+.manage-mode .profile-edit-overlay {
+  display: flex;
+}
+.profile-card-name {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.profile-card:hover .profile-card-name {
+  color: #fff;
+}
+.who-watching-actions {
+  margin-top: 48px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+.manage-profiles-btn,
+.add-profile-btn-outline,
+.who-done-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 10px 24px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: var(--transition-fast);
+}
+.manage-profiles-btn:hover,
+.add-profile-btn-outline:hover {
+  border-color: #fff;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+.who-done-btn {
+  background: #fff;
+  color: #11101a;
+  border-color: #fff;
+}
+.who-done-btn:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+/* Profile Edit Container */
+.profile-edit-container {
+  max-width: 440px;
+  width: 90%;
+}
+.profile-edit-body {
+  padding: 24px;
+}
+.avatar-selection-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.profile-preview-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px solid var(--accent-primary);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+.avatar-choices {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.avatar-choice-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: #17152b;
+  cursor: pointer;
+  padding: 2px;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.avatar-choice-btn img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.avatar-choice-btn:hover,
+.avatar-choice-btn.active {
+  border-color: var(--accent-primary);
+  transform: scale(1.15);
+}
+
+
 

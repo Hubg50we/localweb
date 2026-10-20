@@ -132,6 +132,7 @@
               </div>
             </div>
             <div class="user-popover-links">
+              <a href="#" id="openWhoWatchingBtn"><i data-lucide="users"></i> Switch Profile (Who's Watching?)</a>
               <a href="#" id="openOtakuStatsBtn"><i data-lucide="bar-chart-2"></i> Otaku Wrapped & Stats</a>
               <a href="#" id="openAdminStudioBtn"><i data-lucide="layout-dashboard"></i> Admin CMS Studio</a>
               <a href="#" id="profileWatchlistLink"><i data-lucide="bookmark"></i> Open Watchlist</a>
@@ -381,6 +382,7 @@
               <button class="player-tool-btn" id="lightsOffBtn" title="Lights Off (L)"><i data-lucide="lightbulb"></i> Lights Off</button>
               <button class="player-tool-btn" id="theaterModeBtn" title="Theater Mode (T)"><i data-lucide="maximize-2"></i> Theater</button>
               <button class="player-tool-btn party-btn-highlight" id="watchPartyBtn" title="Start Watch Party Room"><i data-lucide="users"></i> Watch Party</button>
+              <button class="player-tool-btn pip-btn-highlight" id="miniPlayerBtn" title="Picture-in-Picture Mini-Player"><i data-lucide="picture-in-picture-2"></i> Mini-Player</button>
               <label class="toggle-control">
                 <input type="checkbox" id="autoNextCheck" checked>
                 <span>Auto Next</span>
@@ -697,6 +699,80 @@
       <div class="wrapped-body" id="otakuWrappedBody">
         <!-- Injected dynamically -->
       </div>
+    </div>
+  </div>
+
+  <!-- Netflix-Style "Who's Watching?" Profile Selection Modal -->
+  <div class="who-watching-modal" id="whoIsWatchingModal">
+    <div class="who-watching-overlay" id="whoIsWatchingOverlay"></div>
+    <div class="who-watching-container">
+      <h1 class="who-watching-title">Who's Watching?</h1>
+      <div class="profiles-grid" id="profilesGrid">
+        <!-- Rendered by JavaScript -->
+      </div>
+      <div class="who-watching-actions">
+        <button class="manage-profiles-btn" id="manageProfilesBtn">Manage Profiles</button>
+        <button class="add-profile-btn-outline" id="addProfileBtn">+ Add Profile</button>
+        <button class="who-done-btn" id="doneProfilesBtn" style="display: none;">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Edit / Create Modal -->
+  <div class="player-modal" id="profileEditModal">
+    <div class="player-overlay" id="profileEditOverlay"></div>
+    <div class="player-container profile-edit-container">
+      <div class="player-header">
+        <h3 id="profileEditModalTitle" style="color: #fff; font-family: 'Space Grotesk', sans-serif;">Add Profile</h3>
+        <button class="close-modal-btn" id="closeProfileEditBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="profile-edit-body">
+        <form id="profileForm">
+          <input type="hidden" id="editProfileId" value="">
+          <div class="avatar-selection-area">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=otaku" alt="Selected Avatar" class="profile-preview-avatar" id="profilePreviewAvatar">
+            <div class="avatar-choices" id="avatarChoices">
+              <button type="button" class="avatar-choice-btn active" data-avatar="otaku"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=otaku" alt="otaku"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="slayer"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=slayer" alt="slayer"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="chibi"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=chibi" alt="chibi"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="ninja"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=ninja" alt="ninja"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="cyber"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=cyber" alt="cyber"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="mecha"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=mecha" alt="mecha"></button>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 16px;">
+            <label>Profile Name *</label>
+            <input type="text" id="profileNameInput" required maxlength="25" placeholder="e.g. Anime Fan">
+          </div>
+          <div class="admin-form-actions" style="margin-top: 20px; display: flex; justify-content: space-between;">
+            <button type="submit" class="admin-submit-btn" id="saveProfileBtn"><i data-lucide="check"></i> Save Profile</button>
+            <button type="button" class="admin-action-btn del" id="deleteProfileBtn" style="display:none; color: #ff4757; font-size: 0.85rem;"><i data-lucide="trash-2"></i> Delete Profile</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Draggable Picture-in-Picture Mini-Player -->
+  <div class="floating-mini-player" id="floatingMiniPlayer">
+    <div class="mini-player-header" id="miniPlayerDragHandle">
+      <div class="mini-player-title">
+        <i data-lucide="tv" class="mini-icon"></i>
+        <span id="miniAnimeTitle">Anime Title</span>
+        <span class="mini-ep-crumb" id="miniEpCrumb">EP 1</span>
+      </div>
+      <div class="mini-player-actions">
+        <button class="mini-btn" id="miniExpandBtn" title="Expand to Full Player"><i data-lucide="maximize-2"></i></button>
+        <button class="mini-btn" id="miniCloseBtn" title="Close Mini Player"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    <div class="mini-screen-container" id="miniScreenContainer">
+      <iframe id="miniIframePlayer" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="origin"></iframe>
+    </div>
+    <div class="mini-controls-bar">
+      <button class="mini-ctrl-btn" id="miniPrevBtn" title="Previous Episode"><i data-lucide="skip-back"></i> Prev</button>
+      <button class="mini-ctrl-btn" id="miniNextBtn" title="Next Episode">Next <i data-lucide="skip-forward"></i></button>
+      <span class="mini-server-badge" id="miniServerBadge">VidSrc HD</span>
     </div>
   </div>
 

@@ -6,8 +6,70 @@ let spotlightInterval = null;
 let currentPlayingAnime = null;
 let currentPlayingEpisode = 1;
 let currentServer = 'vidsrc';
-let watchlist = JSON.parse(localStorage.getItem('hianime_watchlist') || '[]');
-let watchHistory = JSON.parse(localStorage.getItem('hianime_watch_history') || '[]');
+
+// Netflix Multi-Profile Storage System
+const DEFAULT_PROFILES = [
+  { id: 'p_default', name: 'Otaku Explorer', avatar: 'otaku', isKid: false },
+  { id: 'p_hashira', name: 'Anime Hashira', avatar: 'slayer', isKid: false },
+  { id: 'p_chibi', name: 'Chibi Fan', avatar: 'chibi', isKid: true }
+];
+
+let profiles = JSON.parse(localStorage.getItem('hianime_profiles') || 'null');
+if (!profiles || !Array.isArray(profiles) || profiles.length === 0) {
+  profiles = DEFAULT_PROFILES;
+  localStorage.setItem('hianime_profiles', JSON.stringify(profiles));
+}
+
+let activeProfileId = localStorage.getItem('hianime_active_profile') || 'p_default';
+if (!profiles.some(p => p.id === activeProfileId)) {
+  activeProfileId = profiles[0].id;
+  localStorage.setItem('hianime_active_profile', activeProfileId);
+}
+
+function getActiveProfile() {
+  return profiles.find(p => p.id === activeProfileId) || profiles[0];
+}
+
+function loadProfileWatchlist() {
+  const key = `hianime_watchlist_${activeProfileId}`;
+  const saved = localStorage.getItem(key);
+  if (saved !== null) return JSON.parse(saved);
+  if (activeProfileId === 'p_default') {
+    const legacy = localStorage.getItem('hianime_watchlist');
+    if (legacy) return JSON.parse(legacy);
+  }
+  return [];
+}
+
+function saveProfileWatchlist(list) {
+  watchlist = list;
+  localStorage.setItem(`hianime_watchlist_${activeProfileId}`, JSON.stringify(list));
+  if (activeProfileId === 'p_default') {
+    localStorage.setItem('hianime_watchlist', JSON.stringify(list));
+  }
+}
+
+function loadProfileWatchHistory() {
+  const key = `hianime_watch_history_${activeProfileId}`;
+  const saved = localStorage.getItem(key);
+  if (saved !== null) return JSON.parse(saved);
+  if (activeProfileId === 'p_default') {
+    const legacy = localStorage.getItem('hianime_watch_history');
+    if (legacy) return JSON.parse(legacy);
+  }
+  return [];
+}
+
+function saveProfileWatchHistory(list) {
+  watchHistory = list;
+  localStorage.setItem(`hianime_watch_history_${activeProfileId}`, JSON.stringify(list));
+  if (activeProfileId === 'p_default') {
+    localStorage.setItem('hianime_watch_history', JSON.stringify(list));
+  }
+}
+
+let watchlist = loadProfileWatchlist();
+let watchHistory = loadProfileWatchHistory();
 
 // DOM Elements
 const spotlightSlider = document.getElementById('spotlightSlider');
@@ -127,6 +189,39 @@ const otakuWrappedOverlay = document.getElementById('otakuWrappedOverlay');
 const closeOtakuWrappedBtn = document.getElementById('closeOtakuWrappedBtn');
 const otakuWrappedBody = document.getElementById('otakuWrappedBody');
 
+// Floating Mini-Player Elements
+const floatingMiniPlayer = document.getElementById('floatingMiniPlayer');
+const miniPlayerDragHandle = document.getElementById('miniPlayerDragHandle');
+const miniAnimeTitle = document.getElementById('miniAnimeTitle');
+const miniEpCrumb = document.getElementById('miniEpCrumb');
+const miniIframePlayer = document.getElementById('miniIframePlayer');
+const miniExpandBtn = document.getElementById('miniExpandBtn');
+const miniCloseBtn = document.getElementById('miniCloseBtn');
+const miniPrevBtn = document.getElementById('miniPrevBtn');
+const miniNextBtn = document.getElementById('miniNextBtn');
+const miniServerBadge = document.getElementById('miniServerBadge');
+const miniPlayerBtn = document.getElementById('miniPlayerBtn');
+
+// Netflix-Style Who's Watching Elements
+const whoIsWatchingModal = document.getElementById('whoIsWatchingModal');
+const whoIsWatchingOverlay = document.getElementById('whoIsWatchingOverlay');
+const profilesGrid = document.getElementById('profilesGrid');
+const manageProfilesBtn = document.getElementById('manageProfilesBtn');
+const addProfileBtn = document.getElementById('addProfileBtn');
+const doneProfilesBtn = document.getElementById('doneProfilesBtn');
+const openWhoWatchingBtn = document.getElementById('openWhoWatchingBtn');
+const profileEditModal = document.getElementById('profileEditModal');
+const profileEditOverlay = document.getElementById('profileEditOverlay');
+const closeProfileEditBtn = document.getElementById('closeProfileEditBtn');
+const profileForm = document.getElementById('profileForm');
+const editProfileId = document.getElementById('editProfileId');
+const profileNameInput = document.getElementById('profileNameInput');
+const profilePreviewAvatar = document.getElementById('profilePreviewAvatar');
+const deleteProfileBtn = document.getElementById('deleteProfileBtn');
+const avatarChoices = document.getElementById('avatarChoices');
+let isProfileManageMode = false;
+let selectedAvatarSeed = 'otaku';
+
 // Watch Party & State Management
 let activePartyRoom = null;
 let partyPollTimer = null;
@@ -147,6 +242,7 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
+  initProfileSystem();
   initThemeEngine();
   updateWatchlistBadge();
   renderContinueWatching();
@@ -155,6 +251,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   setupPaletteListeners();
   setupAdminListeners();
+  setupMiniPlayerListeners();
+  setupProfileListeners();
   checkUrlPartyParams();
   if (window.lucide) lucide.createIcons();
 });
@@ -459,7 +557,7 @@ function saveWatchProgress(anime, episodeNumber) {
   watchHistory.unshift(record);
   if (watchHistory.length > 12) watchHistory.length = 12;
 
-  localStorage.setItem('hianime_watch_history', JSON.stringify(watchHistory));
+  saveProfileWatchHistory(watchHistory);
   renderContinueWatching();
 }
 
@@ -496,13 +594,13 @@ function renderContinueWatching() {
 
 function removeWatchHistory(animeId) {
   watchHistory = watchHistory.filter(h => h.animeId !== animeId);
-  localStorage.setItem('hianime_watch_history', JSON.stringify(watchHistory));
+  saveProfileWatchHistory(watchHistory);
   renderContinueWatching();
 }
 
 function clearAllWatchHistory() {
   watchHistory = [];
-  localStorage.removeItem('hianime_watch_history');
+  saveProfileWatchHistory(watchHistory);
   renderContinueWatching();
 }
 
@@ -629,7 +727,7 @@ function toggleWatchlist(animeId) {
     watchlist.push({ id: anime.id, title: anime.title, poster: anime.poster, rating: anime.rating });
   }
 
-  localStorage.setItem('hianime_watchlist', JSON.stringify(watchlist));
+  saveProfileWatchlist(watchlist);
   updateWatchlistBadge();
   updateModalBookmarkBtn(animeId);
   renderWatchlistDrawer();
@@ -1006,8 +1104,7 @@ function setupEventListeners() {
   if (clearWatchlistBtn) {
     clearWatchlistBtn.addEventListener('click', () => {
       if (watchlist.length === 0) return;
-      watchlist = [];
-      localStorage.removeItem('hianime_watchlist');
+      saveProfileWatchlist([]);
       updateWatchlistBadge();
       renderWatchlistDrawer();
     });
@@ -1226,6 +1323,13 @@ function setupEventListeners() {
       if (e.target.files && e.target.files[0]) {
         handleImportBackupFile(e.target.files[0]);
       }
+    });
+  }
+
+  // Mini-Player PiP Button Listener
+  if (miniPlayerBtn) {
+    miniPlayerBtn.addEventListener('click', () => {
+      enterMiniPlayer();
     });
   }
 
@@ -1957,6 +2061,22 @@ function getPaletteActionItems() {
   return [
     {
       type: 'action',
+      title: 'Pop-out Floating Mini-Player (PiP)',
+      desc: 'Minimize player into a floating draggable window',
+      icon: 'picture-in-picture-2',
+      shortcut: '',
+      action: () => enterMiniPlayer()
+    },
+    {
+      type: 'action',
+      title: 'Switch Profile (Who\'s Watching?)',
+      desc: 'Open Netflix-style profile selector with isolated histories',
+      icon: 'users',
+      shortcut: '',
+      action: () => openWhoIsWatching()
+    },
+    {
+      type: 'action',
       title: 'Toggle Lights Off Mode',
       desc: 'Dim everything outside the video player',
       icon: 'lightbulb',
@@ -2516,5 +2636,436 @@ function closeOtakuStats() {
   if (!otakuWrappedModal) return;
   otakuWrappedModal.classList.remove('active');
   document.body.style.overflow = '';
+}
+
+// ========================================================
+// Netflix-Style "Who's Watching?" Multi-Profile System
+// ========================================================
+function initProfileSystem() {
+  updateProfileUI();
+}
+
+function updateProfileUI() {
+  const current = getActiveProfile();
+  const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${current.avatar || 'otaku'}`;
+  
+  // Update navbar user avatar
+  const navAvatar = document.querySelector('#userAvatarBtn img');
+  if (navAvatar) navAvatar.src = avatarUrl;
+  
+  // Update popover header
+  const popoverAvatar = document.querySelector('.user-popover-avatar');
+  if (popoverAvatar) popoverAvatar.src = avatarUrl;
+  
+  const popoverName = document.querySelector('.user-popover-header h4');
+  if (popoverName) popoverName.textContent = current.name;
+
+  const userStatusBadge = document.querySelector('.user-popover-header .user-status-badge');
+  if (userStatusBadge) {
+    userStatusBadge.textContent = current.isKid ? 'Kids Profile' : 'VIP Member';
+  }
+}
+
+function setupProfileListeners() {
+  if (openWhoWatchingBtn) {
+    openWhoWatchingBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const userPop = document.getElementById('userPopover');
+      if (userPop) userPop.classList.remove('show');
+      openWhoIsWatching();
+    });
+  }
+  if (whoIsWatchingOverlay) {
+    whoIsWatchingOverlay.addEventListener('click', () => {
+      closeWhoIsWatching();
+    });
+  }
+  if (manageProfilesBtn) {
+    manageProfilesBtn.addEventListener('click', () => {
+      isProfileManageMode = !isProfileManageMode;
+      const container = document.querySelector('.who-watching-container');
+      if (container) container.classList.toggle('manage-mode', isProfileManageMode);
+      manageProfilesBtn.textContent = isProfileManageMode ? 'Done' : 'Manage Profiles';
+      if (doneProfilesBtn) doneProfilesBtn.style.display = isProfileManageMode ? 'inline-block' : 'none';
+      renderProfilesGrid();
+    });
+  }
+  if (doneProfilesBtn) {
+    doneProfilesBtn.addEventListener('click', () => {
+      isProfileManageMode = false;
+      const container = document.querySelector('.who-watching-container');
+      if (container) container.classList.remove('manage-mode');
+      manageProfilesBtn.textContent = 'Manage Profiles';
+      doneProfilesBtn.style.display = 'none';
+      renderProfilesGrid();
+    });
+  }
+  if (addProfileBtn) {
+    addProfileBtn.addEventListener('click', () => {
+      openProfileEditModal(null);
+    });
+  }
+  if (closeProfileEditBtn) {
+    closeProfileEditBtn.addEventListener('click', closeProfileEditModal);
+  }
+  if (profileEditOverlay) {
+    profileEditOverlay.addEventListener('click', closeProfileEditModal);
+  }
+  if (profileForm) {
+    profileForm.addEventListener('submit', handleProfileFormSubmit);
+  }
+  if (deleteProfileBtn) {
+    deleteProfileBtn.addEventListener('click', () => {
+      const id = editProfileId.value;
+      if (id) deleteActiveProfile(id);
+    });
+  }
+
+  // Avatar Choice Buttons
+  const choiceBtns = document.querySelectorAll('.avatar-choice-btn');
+  choiceBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      choiceBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedAvatarSeed = btn.dataset.avatar || 'otaku';
+      if (profilePreviewAvatar) {
+        profilePreviewAvatar.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${selectedAvatarSeed}`;
+      }
+    });
+  });
+}
+
+function openWhoIsWatching() {
+  if (!whoIsWatchingModal) return;
+  isProfileManageMode = false;
+  const container = document.querySelector('.who-watching-container');
+  if (container) container.classList.remove('manage-mode');
+  if (manageProfilesBtn) manageProfilesBtn.textContent = 'Manage Profiles';
+  if (doneProfilesBtn) doneProfilesBtn.style.display = 'none';
+
+  renderProfilesGrid();
+  whoIsWatchingModal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeWhoIsWatching() {
+  if (!whoIsWatchingModal) return;
+  whoIsWatchingModal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function renderProfilesGrid() {
+  if (!profilesGrid) return;
+  profilesGrid.innerHTML = profiles.map(p => `
+    <div class="profile-card ${p.id === activeProfileId ? 'active' : ''}" onclick="handleProfileCardClick('${p.id}')">
+      <div class="profile-avatar-wrap">
+        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=${p.avatar || 'otaku'}" alt="${p.name}" class="profile-avatar-img">
+        <div class="profile-edit-overlay"><i data-lucide="edit-2"></i></div>
+      </div>
+      <span class="profile-card-name">${p.name}</span>
+    </div>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function handleProfileCardClick(profileId) {
+  if (isProfileManageMode) {
+    openProfileEditModal(profileId);
+  } else {
+    switchActiveProfile(profileId);
+    closeWhoIsWatching();
+  }
+}
+
+function switchActiveProfile(profileId) {
+  const profile = profiles.find(p => p.id === profileId);
+  if (!profile) return;
+
+  activeProfileId = profile.id;
+  localStorage.setItem('hianime_active_profile', activeProfileId);
+
+  // Reload isolated data
+  watchlist = loadProfileWatchlist();
+  watchHistory = loadProfileWatchHistory();
+
+  // Apply isolated theme
+  const savedTheme = localStorage.getItem(`hianime_theme_${activeProfileId}`) || 'sakura';
+  applyTheme(savedTheme);
+
+  // Update UI
+  updateProfileUI();
+  updateWatchlistBadge();
+  renderContinueWatching();
+  renderWatchlistDrawer();
+
+  console.log(`[Profile Switcher] Active profile switched to: ${profile.name} (${profile.id})`);
+}
+
+function openProfileEditModal(profileId) {
+  if (!profileEditModal) return;
+  const isEdit = Boolean(profileId);
+  const profile = isEdit ? profiles.find(p => p.id === profileId) : null;
+
+  editProfileId.value = isEdit ? profile.id : '';
+  profileNameInput.value = isEdit ? profile.name : '';
+  selectedAvatarSeed = (isEdit && profile.avatar) ? profile.avatar : 'otaku';
+
+  const modalTitle = document.getElementById('profileEditModalTitle');
+  if (modalTitle) modalTitle.textContent = isEdit ? 'Edit Profile' : 'Add Profile';
+
+  if (profilePreviewAvatar) {
+    profilePreviewAvatar.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${selectedAvatarSeed}`;
+  }
+
+  // Highlight active avatar choice button
+  document.querySelectorAll('.avatar-choice-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.avatar === selectedAvatarSeed);
+  });
+
+  // Only allow deleting if editing and there is more than 1 profile
+  if (deleteProfileBtn) {
+    deleteProfileBtn.style.display = (isEdit && profiles.length > 1) ? 'inline-flex' : 'none';
+  }
+
+  profileEditModal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeProfileEditModal() {
+  if (!profileEditModal) return;
+  profileEditModal.classList.remove('active');
+  if (whoIsWatchingModal && whoIsWatchingModal.classList.contains('active')) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}
+
+function handleProfileFormSubmit(e) {
+  e.preventDefault();
+  const id = editProfileId.value;
+  const name = profileNameInput.value.trim();
+  if (!name) return;
+
+  if (id) {
+    const target = profiles.find(p => p.id === id);
+    if (target) {
+      target.name = name;
+      target.avatar = selectedAvatarSeed;
+    }
+  } else {
+    const newId = 'p_' + Date.now();
+    profiles.push({
+      id: newId,
+      name: name,
+      avatar: selectedAvatarSeed,
+      isKid: false
+    });
+  }
+
+  localStorage.setItem('hianime_profiles', JSON.stringify(profiles));
+  closeProfileEditModal();
+  renderProfilesGrid();
+  updateProfileUI();
+}
+
+function deleteActiveProfile(profileId) {
+  if (profiles.length <= 1) {
+    alert('You cannot delete the only remaining profile.');
+    return;
+  }
+  if (!confirm('Are you sure you want to delete this profile and its viewing history?')) return;
+
+  profiles = profiles.filter(p => p.id !== profileId);
+  localStorage.setItem('hianime_profiles', JSON.stringify(profiles));
+
+  if (activeProfileId === profileId) {
+    switchActiveProfile(profiles[0].id);
+  }
+
+  closeProfileEditModal();
+  renderProfilesGrid();
+}
+
+// ========================================================
+// Floating Draggable Picture-in-Picture Mini-Player
+// ========================================================
+function setupMiniPlayerListeners() {
+  if (miniExpandBtn) {
+    miniExpandBtn.addEventListener('click', expandMiniPlayer);
+  }
+  if (miniCloseBtn) {
+    miniCloseBtn.addEventListener('click', closeMiniPlayer);
+  }
+  if (miniPrevBtn) {
+    miniPrevBtn.addEventListener('click', () => {
+      if (currentPlayingAnime && currentPlayingEpisode > 1) {
+        changeMiniPlayerEpisode(currentPlayingEpisode - 1);
+      }
+    });
+  }
+  if (miniNextBtn) {
+    miniNextBtn.addEventListener('click', () => {
+      if (currentPlayingAnime) {
+        changeMiniPlayerEpisode(currentPlayingEpisode + 1);
+      }
+    });
+  }
+
+  setupMiniPlayerDrag();
+}
+
+function enterMiniPlayer() {
+  if (!currentPlayingAnime) return;
+  const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
+  
+  if (miniIframePlayer) {
+    miniIframePlayer.src = streamInfo.url;
+  }
+  if (miniAnimeTitle) {
+    miniAnimeTitle.textContent = currentPlayingAnime.title;
+  }
+  if (miniEpCrumb) {
+    miniEpCrumb.textContent = `EP ${currentPlayingEpisode}`;
+  }
+  if (miniServerBadge) {
+    miniServerBadge.textContent = currentServer.toUpperCase();
+  }
+
+  // Close full player modal without stopping state
+  playerModal.classList.remove('active');
+  toggleLightsOff(false);
+  document.body.style.overflow = '';
+  if (animeEmbedPlayer) {
+    animeEmbedPlayer.src = 'about:blank';
+  }
+
+  // Show floating mini player
+  if (floatingMiniPlayer) {
+    floatingMiniPlayer.classList.add('active');
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function expandMiniPlayer() {
+  if (!currentPlayingAnime) return;
+  const animeId = currentPlayingAnime.id;
+  const ep = currentPlayingEpisode;
+
+  closeMiniPlayer();
+  openWatchModal(animeId, ep);
+}
+
+function closeMiniPlayer() {
+  if (miniIframePlayer) {
+    miniIframePlayer.src = 'about:blank';
+  }
+  if (floatingMiniPlayer) {
+    floatingMiniPlayer.classList.remove('active');
+  }
+}
+
+function changeMiniPlayerEpisode(newEp) {
+  if (!currentPlayingAnime) return;
+  currentPlayingEpisode = newEp;
+  const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
+  if (miniIframePlayer) {
+    miniIframePlayer.src = streamInfo.url;
+  }
+  if (miniEpCrumb) {
+    miniEpCrumb.textContent = `EP ${currentPlayingEpisode}`;
+  }
+  saveWatchProgress(currentPlayingAnime, currentPlayingEpisode);
+}
+
+function setupMiniPlayerDrag() {
+  if (!miniPlayerDragHandle || !floatingMiniPlayer) return;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let initialLeft = 0, initialTop = 0;
+
+  function onMouseDown(e) {
+    if (e.target.closest('.mini-player-actions') || e.target.closest('.mini-btn')) return;
+    isDragging = true;
+    const rect = floatingMiniPlayer.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    initialLeft = rect.left;
+    initialTop = rect.top;
+
+    floatingMiniPlayer.style.bottom = 'auto';
+    floatingMiniPlayer.style.right = 'auto';
+    floatingMiniPlayer.style.left = `${initialLeft}px`;
+    floatingMiniPlayer.style.top = `${initialTop}px`;
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  function onMouseMove(e) {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    let newLeft = initialLeft + dx;
+    let newTop = initialTop + dy;
+
+    const maxLeft = window.innerWidth - floatingMiniPlayer.offsetWidth - 10;
+    const maxTop = window.innerHeight - floatingMiniPlayer.offsetHeight - 10;
+
+    newLeft = Math.max(10, Math.min(newLeft, maxLeft));
+    newTop = Math.max(10, Math.min(newTop, maxTop));
+
+    floatingMiniPlayer.style.left = `${newLeft}px`;
+    floatingMiniPlayer.style.top = `${newTop}px`;
+  }
+
+  function onMouseUp() {
+    isDragging = false;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+
+  miniPlayerDragHandle.addEventListener('mousedown', onMouseDown);
+
+  miniPlayerDragHandle.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.mini-player-actions') || e.target.closest('.mini-btn')) return;
+    const touch = e.touches[0];
+    isDragging = true;
+    const rect = floatingMiniPlayer.getBoundingClientRect();
+    startX = touch.clientX;
+    startY = touch.clientY;
+    initialLeft = rect.left;
+    initialTop = rect.top;
+
+    floatingMiniPlayer.style.bottom = 'auto';
+    floatingMiniPlayer.style.right = 'auto';
+    floatingMiniPlayer.style.left = `${initialLeft}px`;
+    floatingMiniPlayer.style.top = `${initialTop}px`;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+
+    let newLeft = initialLeft + dx;
+    let newTop = initialTop + dy;
+
+    const maxLeft = window.innerWidth - floatingMiniPlayer.offsetWidth - 10;
+    const maxTop = window.innerHeight - floatingMiniPlayer.offsetHeight - 10;
+
+    newLeft = Math.max(10, Math.min(newLeft, maxLeft));
+    newTop = Math.max(10, Math.min(newTop, maxTop));
+
+    floatingMiniPlayer.style.left = `${newLeft}px`;
+    floatingMiniPlayer.style.top = `${newTop}px`;
+  }, { passive: true });
+
+  window.addEventListener('touchend', () => {
+    isDragging = false;
+  });
 }
 

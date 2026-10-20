@@ -57,16 +57,21 @@ async function runTests() {
   assert(indexHtml.includes('id="adminStudioModal"'), 'index.html contains Admin Studio modal');
   assert(indexHtml.includes('id="otakuWrappedModal"'), 'index.html contains Otaku Wrapped modal');
   assert(indexHtml.includes('id="themePresetsPicker"'), 'index.html contains Theme Presets picker');
+  assert(indexHtml.includes('id="whoIsWatchingModal"'), 'index.html contains Netflix Who\'s Watching modal');
+  assert(indexHtml.includes('id="floatingMiniPlayer"'), 'index.html contains Floating Picture-in-Picture Mini-Player');
   assert(indexHtml.includes('sw.js') || fs.existsSync(path.join(__dirname, '..', 'public', 'sw.js')), 'sw.js exists in public root');
 
   const css = fs.readFileSync(path.join(__dirname, '..', 'public', 'style.css'), 'utf-8');
   assert(css.includes('--accent-primary') && css.includes('body[data-theme="crimson"]'), 'style.css defines dynamic theme variables and presets');
+  assert(css.includes('.floating-mini-player') && css.includes('.who-watching-modal'), 'style.css defines mini-player and Netflix profile switcher styles');
 
   const appJs = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf-8');
   assert(appJs.includes('openCommandPalette') && appJs.includes('Ctrl+K'), 'app.js implements Command Palette logic');
   assert(appJs.includes('applyTheme') && appJs.includes('hianime_theme'), 'app.js implements Theme Switcher engine');
   assert(appJs.includes('handleAdminFormSubmit'), 'app.js implements Admin CMS Studio logic');
   assert(appJs.includes('openOtakuStats'), 'app.js implements Otaku Wrapped analytics');
+  assert(appJs.includes('initProfileSystem') && appJs.includes('switchActiveProfile'), 'app.js implements Netflix-style profile switcher');
+  assert(appJs.includes('enterMiniPlayer') && appJs.includes('setupMiniPlayerDrag'), 'app.js implements draggable floating mini-player');
 
   // 2. Start Server
   console.log('\n2. Booting Server for End-to-End API Checks...');
