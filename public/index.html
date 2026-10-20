@@ -134,6 +134,8 @@
               <a href="#" id="profileWatchlistLink"><i data-lucide="bookmark"></i> Open Watchlist</a>
               <a href="#" id="profileRandomLink"><i data-lucide="shuffle"></i> Pick Random Anime</a>
               <a href="#" id="profileThemeToggle"><i data-lucide="moon"></i> High Contrast Mode</a>
+              <a href="#" id="profileExportBackup"><i data-lucide="download"></i> Export Backup (JSON)</a>
+              <a href="#" id="profileImportBackup"><i data-lucide="upload"></i> Import Backup</a>
             </div>
           </div>
         </div>
@@ -368,6 +370,7 @@
               <button class="ep-nav-btn" id="nextEpBtn" title="Next Episode (N)">Next <i data-lucide="skip-forward"></i></button>
               <button class="player-tool-btn" id="lightsOffBtn" title="Lights Off (L)"><i data-lucide="lightbulb"></i> Lights Off</button>
               <button class="player-tool-btn" id="theaterModeBtn" title="Theater Mode (T)"><i data-lucide="maximize-2"></i> Theater</button>
+              <button class="player-tool-btn party-btn-highlight" id="watchPartyBtn" title="Start Watch Party Room"><i data-lucide="users"></i> Watch Party</button>
               <label class="toggle-control">
                 <input type="checkbox" id="autoNextCheck" checked>
                 <span>Auto Next</span>
@@ -391,6 +394,72 @@
               </button>
             </div>
             <p class="modal-synopsis" id="modalSynopsis"></p>
+          </div>
+
+          <!-- Community & Tools Panel: Star Ratings, Bookmarks, Episode Comments -->
+          <div class="community-tools-panel">
+            <div class="rating-bookmark-row">
+              <div class="star-rating-box">
+                <span class="rating-label"><i data-lucide="star"></i> Rate this Anime:</span>
+                <div class="star-rating" id="starRatingWidget">
+                  <button class="star-btn" data-star="1" title="1 Star">★</button>
+                  <button class="star-btn" data-star="2" title="2 Stars">★</button>
+                  <button class="star-btn" data-star="3" title="3 Stars">★</button>
+                  <button class="star-btn" data-star="4" title="4 Stars">★</button>
+                  <button class="star-btn" data-star="5" title="5 Stars">★</button>
+                </div>
+                <span class="user-rating-text" id="userRatingText">Not rated yet</span>
+              </div>
+              <div class="bookmark-tools">
+                <button class="tool-btn-highlight" id="bookmarkSceneBtn"><i data-lucide="bookmark-plus"></i> Bookmark Scene</button>
+              </div>
+            </div>
+
+            <!-- Timestamp Bookmarks Container -->
+            <div class="bookmarks-container" id="bookmarksContainer">
+              <div class="bookmarks-header">
+                <h4><i data-lucide="bookmark"></i> Saved Scene Bookmarks</h4>
+                <span class="bookmarks-count" id="bookmarksCount">0 saved</span>
+              </div>
+              <div class="bookmarks-list" id="bookmarksList">
+                <!-- Injected by JavaScript -->
+              </div>
+            </div>
+
+            <!-- Episode Discussion & Comments -->
+            <div class="episode-comments-section" id="commentsSection">
+              <div class="comments-header">
+                <div class="comments-title">
+                  <h3><i data-lucide="message-square"></i> Episode Discussion</h3>
+                  <span class="comments-count" id="commentsCount">0 comments</span>
+                </div>
+                <div class="comments-notice-badge">
+                  <span><i data-lucide="shield-alert"></i> Spoiler tags blur hidden text</span>
+                </div>
+              </div>
+
+              <!-- Comment Submission Form -->
+              <form class="comment-form" id="commentForm">
+                <div class="comment-form-inputs">
+                  <input type="text" id="commentUsername" placeholder="Your name (e.g. OtakuHero)" maxlength="25" required>
+                  <label class="spoiler-toggle">
+                    <input type="checkbox" id="commentSpoilerCheck">
+                    <span><i data-lucide="eye-off"></i> Contains Spoiler</span>
+                  </label>
+                </div>
+                <div class="comment-textarea-wrap">
+                  <textarea id="commentText" placeholder="Drop your reaction, theory, or review for this episode..." rows="2" required></textarea>
+                  <button type="submit" class="comment-submit-btn" id="submitCommentBtn">
+                    <i data-lucide="send"></i> Post Comment
+                  </button>
+                </div>
+              </form>
+
+              <!-- Comments Feed -->
+              <div class="comments-list" id="commentsList">
+                <!-- Injected by JavaScript -->
+              </div>
+            </div>
           </div>
         </div>
 
@@ -419,9 +488,40 @@
         <button class="close-drawer-btn" id="closeDrawerBtn"><i data-lucide="x"></i></button>
       </div>
     </div>
+    <div class="drawer-backup-bar">
+      <button class="backup-btn" id="exportBackupBtn"><i data-lucide="download"></i> Export Backup (JSON)</button>
+      <button class="backup-btn" id="importBackupBtn"><i data-lucide="upload"></i> Import Backup</button>
+      <input type="file" id="importFileInput" accept=".json" style="display: none;">
+    </div>
     <div class="drawer-body" id="watchlistItems">
       <!-- Injected by JavaScript -->
     </div>
+  </div>
+
+  <!-- Watch Party Live Side-Chat Drawer -->
+  <div class="drawer watch-party-drawer" id="watchPartyDrawer">
+    <div class="drawer-header">
+      <h3><i data-lucide="users"></i> Watch Party Room</h3>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="tool-btn-sm" id="copyPartyLinkBtn" title="Copy Invite Link"><i data-lucide="link"></i> Copy Link</button>
+        <button class="close-drawer-btn" id="closePartyDrawerBtn"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    <div class="party-room-info">
+      <div class="party-room-badge">
+        <span>Room Code:</span> <strong id="partyRoomCode">---</strong>
+      </div>
+      <div class="sync-badge" id="partySyncBadge">
+        <i data-lucide="radio"></i> <span>Live Syncing</span>
+      </div>
+    </div>
+    <div class="party-chat-body" id="partyChatMessages">
+      <!-- Messages injected by JavaScript -->
+    </div>
+    <form class="party-chat-form" id="partyChatForm">
+      <input type="text" id="partyChatInput" placeholder="Chat with watch party..." autocomplete="off" required>
+      <button type="submit" class="party-send-btn" title="Send message"><i data-lucide="send"></i></button>
+    </form>
   </div>
 
   <!-- General Information & Community Modal -->

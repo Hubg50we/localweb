@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const https = require('https');
 const { META, ANIME } = require('@consumet/extensions');
-const animeDatabase = require('./data/anime-data');
+let animeDatabase = require('./data/anime-data');
 const aniCli = require('./ani-cli-bridge');
 
 const app = express();
@@ -308,6 +308,119 @@ app.get('/api/live/schedule', async (req, res) => {
   const fallbackData = getLocalScheduleFallback(targetDay);
   scheduleCache.set(targetDay, { timestamp: Date.now(), data: fallbackData });
   res.json({ success: true, day: targetDay, source: 'local_fallback', data: fallbackData });
+});
+
+// 7. POST /api/admin/sync-catalog - Reloads local anime-data or synchronizes catalog
+app.post('/api/admin/sync-catalog', (req, res) => {
+  try {
+    delete require.cache[require.resolve('./data/anime-data')];
+    animeDatabase = require('./data/anime-data');
+    console.log(`[Admin] Anime catalog reloaded. Total shows: ${animeDatabase.length}`);
+    return res.json({
+      success: true,
+      count: animeDatabase.length,
+      message: 'Anime catalog synchronized successfully',
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[Admin] Catalog sync error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to reload catalog', error: err.message });
+  }
+});
+
+// Watch Party Rooms (in-memory Map)
+const partyRooms = new Map();
+
+// 8. GET /api/party/:roomId/messages - Get current room status and chat messages
+app.get('/api/party/:roomId/messages', (req, res) => {
+  const { roomId } = req.params;
+  const animeId = req.query.anime || null;
+  const episodeNum = parseInt(req.query.ep) || 1;
+
+  if (!partyRooms.has(roomId)) {
+    partyRooms.set(roomId, {
+      roomId,
+      animeId,
+      episodeNum,
+      currentServer: 'vidsrc',
+      messages: [
+        {
+          id: 'welcome_' + Date.now(),
+          user: 'HiAnime Bot',
+          text: `🎉 Welcome to Watch Party room #${roomId}! Share the link to invite friends.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: 'system'
+        }
+      ],
+      lastActive: Date.now()
+    });
+  }
+
+  const room = partyRooms.get(roomId);
+  room.lastActive = Date.now();
+  res.json({
+    success: true,
+    roomId: room.roomId,
+    animeId: room.animeId,
+    episodeNum: room.episodeNum,
+    currentServer: room.currentServer,
+    messages: room.messages
+  });
+});
+
+// 9. POST /api/party/:roomId/messages - Send a message or sync playback episode
+app.post('/api/party/:roomId/messages', (req, res) => {
+  const { roomId } = req.params;
+  const { user, text, animeId, episodeNum, currentServer, type } = req.body;
+
+  if (!partyRooms.has(roomId)) {
+    partyRooms.set(roomId, {
+      roomId,
+      animeId: animeId || null,
+      episodeNum: parseInt(episodeNum) || 1,
+      currentServer: currentServer || 'vidsrc',
+      messages: [],
+      lastActive: Date.now()
+    });
+  }
+
+  const room = partyRooms.get(roomId);
+  room.lastActive = Date.now();
+
+  // If sync instruction provided, update room state
+  if (animeId) room.animeId = animeId;
+  if (episodeNum) room.episodeNum = parseInt(episodeNum);
+  if (currentServer) room.currentServer = currentServer;
+
+  let newMsg = null;
+  if (text || type === 'sync') {
+    newMsg = {
+      id: 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      user: user || 'Anonymous',
+      text: text || (type === 'sync' ? `Switched to Episode ${episodeNum}` : ''),
+      animeId: room.animeId,
+      episodeNum: room.episodeNum,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: type || 'chat'
+    };
+    room.messages.push(newMsg);
+
+    // Keep message history bounded
+    if (room.messages.length > 100) {
+      room.messages.shift();
+    }
+  }
+
+  res.json({
+    success: true,
+    message: newMsg,
+    roomState: {
+      roomId: room.roomId,
+      animeId: room.animeId,
+      episodeNum: room.episodeNum,
+      currentServer: room.currentServer
+    }
+  });
 });
 
 // ani-cli Integration Routes

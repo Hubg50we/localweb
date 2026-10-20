@@ -58,6 +58,43 @@ const theaterModeBtn = document.getElementById('theaterModeBtn');
 const scheduleGrid = document.getElementById('scheduleGrid');
 const scheduleDaysTabs = document.getElementById('scheduleDaysTabs');
 
+// Community & Interactive Tools Elements (v4.0)
+const starRatingWidget = document.getElementById('starRatingWidget');
+const userRatingText = document.getElementById('userRatingText');
+const bookmarkSceneBtn = document.getElementById('bookmarkSceneBtn');
+const bookmarksList = document.getElementById('bookmarksList');
+const bookmarksCount = document.getElementById('bookmarksCount');
+const commentsSection = document.getElementById('commentsSection');
+const commentsList = document.getElementById('commentsList');
+const commentsCount = document.getElementById('commentsCount');
+const commentForm = document.getElementById('commentForm');
+const commentUsername = document.getElementById('commentUsername');
+const commentSpoilerCheck = document.getElementById('commentSpoilerCheck');
+const commentText = document.getElementById('commentText');
+
+// Watch Party Elements
+const watchPartyBtn = document.getElementById('watchPartyBtn');
+const watchPartyDrawer = document.getElementById('watchPartyDrawer');
+const closePartyDrawerBtn = document.getElementById('closePartyDrawerBtn');
+const copyPartyLinkBtn = document.getElementById('copyPartyLinkBtn');
+const partyRoomCode = document.getElementById('partyRoomCode');
+const partySyncBadge = document.getElementById('partySyncBadge');
+const partyChatMessages = document.getElementById('partyChatMessages');
+const partyChatForm = document.getElementById('partyChatForm');
+const partyChatInput = document.getElementById('partyChatInput');
+
+// Backup Elements
+const exportBackupBtn = document.getElementById('exportBackupBtn');
+const importBackupBtn = document.getElementById('importBackupBtn');
+const importFileInput = document.getElementById('importFileInput');
+const profileExportBackup = document.getElementById('profileExportBackup');
+const profileImportBackup = document.getElementById('profileImportBackup');
+
+// Watch Party & State Management
+let activePartyRoom = null;
+let partyPollTimer = null;
+let currentAnimeBookmarks = [];
+
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
   updateWatchlistBadge();
@@ -65,6 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadData();
   await initSchedule();
   setupEventListeners();
+  checkUrlPartyParams();
   if (window.lucide) lucide.createIcons();
 });
 
@@ -472,6 +510,12 @@ async function openWatchModal(animeId, episodeNum = 1) {
 
   // Render Episode List
   renderEpisodesSidebar(anime, episodeNum);
+
+  // Initialize v4.0 Community & Interactive Features
+  initStarRating(anime.id);
+  initBookmarks(anime.id, episodeNum);
+  initComments(anime.id, episodeNum);
+  syncWatchPartyEpisode(anime.id, episodeNum);
 
   playerModal.classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -1089,6 +1133,49 @@ function setupEventListeners() {
     });
   });
 
+  // Community & Tools Event Listeners (v4.0)
+  if (bookmarkSceneBtn) {
+    bookmarkSceneBtn.addEventListener('click', addSceneBookmark);
+  }
+  if (commentForm) {
+    commentForm.addEventListener('submit', submitCommentForm);
+  }
+
+  // Watch Party Listeners
+  if (watchPartyBtn) {
+    watchPartyBtn.addEventListener('click', openWatchParty);
+  }
+  if (closePartyDrawerBtn) {
+    closePartyDrawerBtn.addEventListener('click', closeWatchParty);
+  }
+  if (copyPartyLinkBtn) {
+    copyPartyLinkBtn.addEventListener('click', copyPartyInviteLink);
+  }
+  if (partyChatForm) {
+    partyChatForm.addEventListener('submit', sendPartyChatMessage);
+  }
+
+  // Backup Export & Import Listeners
+  if (exportBackupBtn) {
+    exportBackupBtn.addEventListener('click', exportHiAnimeBackup);
+  }
+  if (importBackupBtn) {
+    importBackupBtn.addEventListener('click', triggerImportBackup);
+  }
+  if (profileExportBackup) {
+    profileExportBackup.addEventListener('click', exportHiAnimeBackup);
+  }
+  if (profileImportBackup) {
+    profileImportBackup.addEventListener('click', triggerImportBackup);
+  }
+  if (importFileInput) {
+    importFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleImportBackupFile(e.target.files[0]);
+      }
+    });
+  }
+
   // Video End - Auto Next Episode
   animeVideoPlayer.addEventListener('ended', () => {
     if (autoNextCheck.checked && currentPlayingAnime && currentPlayingAnime.episodes) {
@@ -1263,4 +1350,445 @@ function filterAnimeGrid(tab, genre) {
 
   renderAnimeGrid(list);
   if (window.lucide) lucide.createIcons();
+}
+
+// ========================================================
+// v4.0 Community & Interactive Tools Implementations
+// ========================================================
+
+// 1. Star Rating Widget Logic
+function initStarRating(animeId) {
+  if (!starRatingWidget) return;
+  const ratings = JSON.parse(localStorage.getItem('hianime_ratings') || '{}');
+  const currentRating = ratings[animeId] || 0;
+  updateStarRatingDisplay(currentRating);
+
+  const starBtns = starRatingWidget.querySelectorAll('.star-btn');
+  starBtns.forEach(btn => {
+    btn.onclick = () => {
+      const star = parseInt(btn.dataset.star, 10);
+      ratings[animeId] = star;
+      localStorage.setItem('hianime_ratings', JSON.stringify(ratings));
+      updateStarRatingDisplay(star);
+    };
+    btn.onmouseenter = () => {
+      const star = parseInt(btn.dataset.star, 10);
+      starBtns.forEach(b => {
+        b.classList.toggle('hovered', parseInt(b.dataset.star, 10) <= star);
+      });
+    };
+    btn.onmouseleave = () => {
+      starBtns.forEach(b => b.classList.remove('hovered'));
+    };
+  });
+}
+
+function updateStarRatingDisplay(rating) {
+  if (!starRatingWidget) return;
+  const starBtns = starRatingWidget.querySelectorAll('.star-btn');
+  starBtns.forEach(btn => {
+    const starVal = parseInt(btn.dataset.star, 10);
+    btn.classList.toggle('active', starVal <= rating);
+  });
+  if (userRatingText) {
+    if (rating > 0) {
+      const labels = ['', 'Poor', 'Fair', 'Good', 'Great', 'Masterpiece!'];
+      userRatingText.textContent = `${rating}/5 Stars (${labels[rating]})`;
+    } else {
+      userRatingText.textContent = 'Not rated yet';
+    }
+  }
+}
+
+// 2. Timestamp Bookmarks Logic
+function initBookmarks(animeId, episodeNum) {
+  if (!bookmarksList) return;
+  const bookmarks = JSON.parse(localStorage.getItem(`hianime_bookmarks_${animeId}`) || '[]');
+  currentAnimeBookmarks = bookmarks;
+  renderBookmarksList(animeId, bookmarks);
+}
+
+function renderBookmarksList(animeId, bookmarks) {
+  if (!bookmarksList) return;
+  if (bookmarksCount) bookmarksCount.textContent = `${bookmarks.length} saved`;
+  if (bookmarks.length === 0) {
+    bookmarksList.innerHTML = `<span class="bookmarks-empty">No scene bookmarks saved yet. Click "Bookmark Scene" to save key moments!</span>`;
+    return;
+  }
+  bookmarksList.innerHTML = bookmarks.map(b => `
+    <div class="bookmark-card" title="${b.note || 'Scene Bookmark'}">
+      <span onclick="openWatchModal('${animeId}', ${b.epNumber})"><i data-lucide="play-circle" style="width:13px;height:13px;vertical-align:middle;"></i> EP ${b.epNumber}: ${b.note || 'Key Scene'}</span>
+      <button class="bookmark-del-btn" onclick="event.stopPropagation(); deleteBookmark('${animeId}', '${b.id}')" title="Delete bookmark">&times;</button>
+    </div>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function addSceneBookmark() {
+  if (!currentPlayingAnime) return;
+  const note = prompt(`Enter a note for Episode ${currentPlayingEpisode} bookmark:`, `EP ${currentPlayingEpisode} Epic Scene`);
+  if (!note) return;
+
+  const animeId = currentPlayingAnime.id;
+  const bookmarks = JSON.parse(localStorage.getItem(`hianime_bookmarks_${animeId}`) || '[]');
+  const newBookmark = {
+    id: 'bm_' + Date.now(),
+    epNumber: currentPlayingEpisode,
+    note: note.trim(),
+    createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+  bookmarks.push(newBookmark);
+  localStorage.setItem(`hianime_bookmarks_${animeId}`, JSON.stringify(bookmarks));
+  renderBookmarksList(animeId, bookmarks);
+}
+
+function deleteBookmark(animeId, bookmarkId) {
+  let bookmarks = JSON.parse(localStorage.getItem(`hianime_bookmarks_${animeId}`) || '[]');
+  bookmarks = bookmarks.filter(b => b.id !== bookmarkId);
+  localStorage.setItem(`hianime_bookmarks_${animeId}`, JSON.stringify(bookmarks));
+  renderBookmarksList(animeId, bookmarks);
+}
+
+// 3. Episode Discussion & Comments Logic
+function initComments(animeId, episodeNum) {
+  if (!commentsSection) return;
+  const key = `hianime_comments_${animeId}_${episodeNum}`;
+  let comments = JSON.parse(localStorage.getItem(key) || 'null');
+  if (!comments) {
+    comments = [
+      {
+        id: 'seed_1_' + episodeNum,
+        username: 'AnimeSlayer',
+        avatarSeed: 'slayer',
+        text: `The animation and pacing in Episode ${episodeNum} is absolutely unbelievable! Top-tier studio quality.`,
+        isSpoiler: false,
+        likes: 12,
+        timeAgo: '2 hours ago',
+        isUser: false
+      },
+      {
+        id: 'seed_2_' + episodeNum,
+        username: 'ShadowMonarch',
+        avatarSeed: 'shadow',
+        text: `Watch out at the climax when the secret skill unlocks! Cannot believe they kept that twist from the manga!`,
+        isSpoiler: true,
+        likes: 8,
+        timeAgo: '4 hours ago',
+        isUser: false
+      }
+    ];
+    localStorage.setItem(key, JSON.stringify(comments));
+  }
+  renderCommentsFeed(comments, animeId, episodeNum);
+}
+
+function renderCommentsFeed(comments, animeId, episodeNum) {
+  if (!commentsList) return;
+  if (commentsCount) commentsCount.textContent = `${comments.length} comment${comments.length === 1 ? '' : 's'}`;
+
+  if (comments.length === 0) {
+    commentsList.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 20px;">No comments yet on Episode ${episodeNum}. Be the first to start the discussion!</div>`;
+    return;
+  }
+
+  commentsList.innerHTML = comments.map(c => `
+    <div class="comment-card" id="comment-${c.id}">
+      <div class="comment-top">
+        <div class="comment-author-wrap">
+          <img src="https://api.dicebear.com/7.x/bottts/svg?seed=${c.avatarSeed || 'otaku'}" alt="${c.username}" class="comment-author-avatar">
+          <span class="comment-author-name">${c.username}</span>
+          <span class="comment-time">${c.timeAgo || 'Just now'}</span>
+        </div>
+        ${c.isSpoiler ? `<span class="comment-badge-spoiler">SPOILER</span>` : ''}
+      </div>
+      <div class="comment-content ${c.isSpoiler ? 'comment-spoiler-blurred' : ''}" ${c.isSpoiler ? `onclick="this.classList.toggle('comment-spoiler-blurred');"` : ''} title="${c.isSpoiler ? 'Click to reveal spoiler' : ''}">
+        ${c.text}
+      </div>
+      <div class="comment-bottom">
+        <button class="comment-like-btn" onclick="toggleCommentLike('${animeId}', ${episodeNum}, '${c.id}')">
+          <i data-lucide="heart" style="width:13px;height:13px;"></i> <span>${c.likes || 0}</span>
+        </button>
+        ${c.isUser ? `<button class="comment-del-btn" onclick="deleteComment('${animeId}', ${episodeNum}, '${c.id}')"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Delete</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function submitCommentForm(e) {
+  e.preventDefault();
+  if (!currentPlayingAnime) return;
+  const username = (commentUsername.value || '').trim() || 'Anonymous Otaku';
+  const text = (commentText.value || '').trim();
+  const isSpoiler = commentSpoilerCheck ? commentSpoilerCheck.checked : false;
+
+  if (!text) return;
+
+  const animeId = currentPlayingAnime.id;
+  const epNum = currentPlayingEpisode;
+  const key = `hianime_comments_${animeId}_${epNum}`;
+  const comments = JSON.parse(localStorage.getItem(key) || '[]');
+
+  const newComment = {
+    id: 'user_comment_' + Date.now(),
+    username: username,
+    avatarSeed: username.toLowerCase().replace(/[^a-z0-9]/g, ''),
+    text: text,
+    isSpoiler: isSpoiler,
+    likes: 1,
+    timeAgo: 'Just now',
+    isUser: true
+  };
+
+  comments.unshift(newComment);
+  localStorage.setItem(key, JSON.stringify(comments));
+
+  commentText.value = '';
+  if (commentSpoilerCheck) commentSpoilerCheck.checked = false;
+
+  renderCommentsFeed(comments, animeId, epNum);
+}
+
+function toggleCommentLike(animeId, episodeNum, commentId) {
+  const key = `hianime_comments_${animeId}_${episodeNum}`;
+  let comments = JSON.parse(localStorage.getItem(key) || '[]');
+  const target = comments.find(c => c.id === commentId);
+  if (target) {
+    target.likes = (target.likes || 0) + 1;
+    localStorage.setItem(key, JSON.stringify(comments));
+    renderCommentsFeed(comments, animeId, episodeNum);
+  }
+}
+
+function deleteComment(animeId, episodeNum, commentId) {
+  const key = `hianime_comments_${animeId}_${episodeNum}`;
+  let comments = JSON.parse(localStorage.getItem(key) || '[]');
+  comments = comments.filter(c => c.id !== commentId);
+  localStorage.setItem(key, JSON.stringify(comments));
+  renderCommentsFeed(comments, animeId, episodeNum);
+}
+
+// 4. Watch Party Room & Live Chat Logic
+function openWatchParty() {
+  if (!watchPartyDrawer) return;
+  if (!activePartyRoom) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const existing = urlParams.get('party');
+    activePartyRoom = existing || ('ROOM-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('party', activePartyRoom);
+    if (currentPlayingAnime) {
+      newUrl.searchParams.set('anime', currentPlayingAnime.id);
+      newUrl.searchParams.set('ep', currentPlayingEpisode);
+    }
+    window.history.replaceState({}, '', newUrl.toString());
+  }
+
+  if (partyRoomCode) partyRoomCode.textContent = activePartyRoom;
+  watchPartyDrawer.classList.add('open');
+
+  pollPartyMessages();
+  if (partyPollTimer) clearInterval(partyPollTimer);
+  partyPollTimer = setInterval(pollPartyMessages, 3000);
+}
+
+function closeWatchParty() {
+  if (watchPartyDrawer) watchPartyDrawer.classList.remove('open');
+}
+
+async function pollPartyMessages() {
+  if (!activePartyRoom || !partyChatMessages) return;
+  try {
+    const animeId = currentPlayingAnime ? currentPlayingAnime.id : '';
+    const ep = currentPlayingEpisode || 1;
+    const res = await fetch(`/api/party/${encodeURIComponent(activePartyRoom)}/messages?anime=${encodeURIComponent(animeId)}&ep=${ep}`).then(r => r.json());
+    if (res && res.success && res.messages) {
+      renderPartyMessages(res.messages);
+
+      if (res.animeId && res.episodeNum && currentPlayingAnime) {
+        if (res.animeId === currentPlayingAnime.id && res.episodeNum !== currentPlayingEpisode) {
+          currentPlayingEpisode = res.episodeNum;
+          const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
+          loadActivePlayer(streamInfo.url, streamInfo.isEmbed);
+          modalEpCrumb.textContent = `Episode ${currentPlayingEpisode}`;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Watch party poll error:', err);
+  }
+}
+
+function renderPartyMessages(messages) {
+  if (!partyChatMessages) return;
+  partyChatMessages.innerHTML = messages.map(m => `
+    <div class="party-msg ${m.type || 'chat'}">
+      <div class="party-msg-header">
+        <span class="party-msg-sender">${m.user}</span>
+        <span class="party-msg-time">${m.timestamp}</span>
+      </div>
+      <div class="party-msg-text">${m.text}</div>
+    </div>
+  `).join('');
+  partyChatMessages.scrollTop = partyChatMessages.scrollHeight;
+}
+
+async function sendPartyChatMessage(e) {
+  if (e) e.preventDefault();
+  if (!activePartyRoom || !partyChatInput) return;
+  const text = partyChatInput.value.trim();
+  if (!text) return;
+
+  const user = (commentUsername && commentUsername.value.trim()) || 'OtakuFan';
+  try {
+    await fetch(`/api/party/${encodeURIComponent(activePartyRoom)}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user: user,
+        text: text,
+        animeId: currentPlayingAnime ? currentPlayingAnime.id : null,
+        episodeNum: currentPlayingEpisode,
+        currentServer: currentServer,
+        type: 'chat'
+      })
+    });
+    partyChatInput.value = '';
+    pollPartyMessages();
+  } catch (err) {
+    console.warn('Party message send failed:', err);
+  }
+}
+
+function syncWatchPartyEpisode(animeId, episodeNum) {
+  if (!activePartyRoom) return;
+  fetch(`/api/party/${encodeURIComponent(activePartyRoom)}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user: 'HiAnime Sync',
+      type: 'sync',
+      animeId: animeId,
+      episodeNum: episodeNum,
+      text: `Host switched to Episode ${episodeNum}`
+    })
+  }).catch(() => {});
+}
+
+function copyPartyInviteLink() {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    alert(`Party link copied to clipboard!\n${url}`);
+  }).catch(() => {
+    prompt('Copy this party link to invite friends:', url);
+  });
+}
+
+function checkUrlPartyParams() {
+  const params = new URLSearchParams(window.location.search);
+  const party = params.get('party');
+  const anime = params.get('anime');
+  const ep = parseInt(params.get('ep'), 10) || 1;
+
+  if (party) {
+    activePartyRoom = party;
+    if (partyRoomCode) partyRoomCode.textContent = party;
+    if (anime) {
+      setTimeout(() => {
+        openWatchModal(anime, ep);
+        openWatchParty();
+      }, 500);
+    } else {
+      openWatchParty();
+    }
+  }
+}
+
+// 5. Watchlist & User Backup Export & Import Logic
+function exportHiAnimeBackup() {
+  const backupData = {
+    version: '4.0',
+    exportedAt: new Date().toISOString(),
+    watchlist: JSON.parse(localStorage.getItem('hianime_watchlist') || '[]'),
+    watchHistory: JSON.parse(localStorage.getItem('hianime_watch_history') || '[]'),
+    ratings: JSON.parse(localStorage.getItem('hianime_ratings') || '{}'),
+    preferences: {
+      autoNext: localStorage.getItem('hianime_auto_next') !== 'false',
+      theme: 'hianime-dark-neon'
+    }
+  };
+
+  backupData.bookmarks = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('hianime_bookmarks_')) {
+      backupData.bookmarks[k] = JSON.parse(localStorage.getItem(k) || '[]');
+    }
+  }
+
+  const jsonStr = JSON.stringify(backupData, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `hianime-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function triggerImportBackup() {
+  if (importFileInput) {
+    importFileInput.click();
+  }
+}
+
+function handleImportBackupFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || !data.version) {
+        throw new Error('Invalid backup file format');
+      }
+
+      if (Array.isArray(data.watchlist)) {
+        watchlist = data.watchlist;
+        localStorage.setItem('hianime_watchlist', JSON.stringify(watchlist));
+        updateWatchlistBadge();
+        renderWatchlistDrawer();
+      }
+
+      if (Array.isArray(data.watchHistory)) {
+        watchHistory = data.watchHistory;
+        localStorage.setItem('hianime_watch_history', JSON.stringify(watchHistory));
+        renderContinueWatching();
+      }
+
+      if (data.ratings && typeof data.ratings === 'object') {
+        localStorage.setItem('hianime_ratings', JSON.stringify(data.ratings));
+      }
+
+      if (data.preferences) {
+        if (data.preferences.autoNext !== undefined) {
+          localStorage.setItem('hianime_auto_next', data.preferences.autoNext);
+          if (autoNextCheck) autoNextCheck.checked = Boolean(data.preferences.autoNext);
+        }
+      }
+
+      if (data.bookmarks && typeof data.bookmarks === 'object') {
+        for (const [k, v] of Object.entries(data.bookmarks)) {
+          localStorage.setItem(k, JSON.stringify(v));
+        }
+      }
+
+      alert('Backup successfully restored! Your Watchlist, History, and Bookmarks have been updated.');
+    } catch (err) {
+      alert('Failed to import backup: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
 }
