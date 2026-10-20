@@ -45,6 +45,7 @@
         <div class="search-box">
           <i data-lucide="search" class="search-icon"></i>
           <input type="text" id="searchInput" placeholder="Search anime, movies, genres... (e.g. Solo Leveling)" autocomplete="off">
+          <button class="palette-trigger-btn" id="paletteTriggerBtn" title="Command Palette (Ctrl+K)"><kbd>Ctrl+K</kbd></button>
           <button class="filter-btn" id="filterBtn" title="Advanced Filter">
             <i data-lucide="sliders-horizontal"></i> Filter
           </button>
@@ -131,9 +132,18 @@
               </div>
             </div>
             <div class="user-popover-links">
+              <a href="#" id="openOtakuStatsBtn"><i data-lucide="bar-chart-2"></i> Otaku Wrapped & Stats</a>
+              <a href="#" id="openAdminStudioBtn"><i data-lucide="layout-dashboard"></i> Admin CMS Studio</a>
               <a href="#" id="profileWatchlistLink"><i data-lucide="bookmark"></i> Open Watchlist</a>
               <a href="#" id="profileRandomLink"><i data-lucide="shuffle"></i> Pick Random Anime</a>
-              <a href="#" id="profileThemeToggle"><i data-lucide="moon"></i> High Contrast Mode</a>
+              <div class="user-popover-section-label">Neon Themes</div>
+              <div class="theme-presets-picker" id="themePresetsPicker">
+                <button class="theme-dot active" data-theme="sakura" title="Sakura Pink" style="background: #ffbade;"></button>
+                <button class="theme-dot" data-theme="crimson" title="Cyberpunk Crimson" style="background: #ff2a5f;"></button>
+                <button class="theme-dot" data-theme="cyan" title="Electric Cyan" style="background: #00f0ff;"></button>
+                <button class="theme-dot" data-theme="purple" title="Gojo Purple" style="background: #9d4edd;"></button>
+                <button class="theme-dot" data-theme="gold" title="Solar Gold" style="background: #ffbe0b;"></button>
+              </div>
               <a href="#" id="profileExportBackup"><i data-lucide="download"></i> Export Backup (JSON)</a>
               <a href="#" id="profileImportBackup"><i data-lucide="upload"></i> Import Backup</a>
             </div>
@@ -534,6 +544,158 @@
       </div>
       <div id="infoModalBody" class="info-modal-body">
         <!-- Injected by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Command Palette Modal (Ctrl+K) -->
+  <div class="command-palette-modal" id="commandPaletteModal">
+    <div class="palette-overlay" id="paletteOverlay"></div>
+    <div class="palette-container">
+      <div class="palette-search-bar">
+        <i data-lucide="terminal" class="palette-search-icon"></i>
+        <input type="text" id="paletteInput" placeholder="Type a command or search anime... (↑/↓ navigate, Enter run, ESC close)" autocomplete="off">
+        <span class="palette-badge">ESC</span>
+      </div>
+      <div class="palette-results" id="paletteResults">
+        <!-- Injected by JavaScript -->
+      </div>
+      <div class="palette-footer">
+        <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+        <span><kbd>↵</kbd> Execute</span>
+        <span><kbd>ESC</kbd> Close</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Built-In Admin Studio / CMS Modal -->
+  <div class="player-modal" id="adminStudioModal">
+    <div class="player-overlay" id="adminStudioOverlay"></div>
+    <div class="player-container admin-container">
+      <div class="player-header">
+        <div class="admin-header-title">
+          <h3><i data-lucide="layout-dashboard"></i> HiAnime Admin CMS Studio</h3>
+          <span class="admin-stats-pill" id="adminShowsCount">54 Shows</span>
+        </div>
+        <button class="close-modal-btn" id="closeAdminStudioBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="admin-body">
+        <div class="admin-tabs" id="adminTabs">
+          <button class="admin-tab-btn active" data-tab="catalog"><i data-lucide="film"></i> Manage Catalog</button>
+          <button class="admin-tab-btn" data-tab="add"><i data-lucide="plus-circle"></i> Add / Edit Anime</button>
+          <button class="admin-tab-btn" data-tab="spotlight"><i data-lucide="sparkles"></i> Spotlight Manager</button>
+        </div>
+
+        <!-- Tab 1: Catalog Table -->
+        <div class="admin-tab-content active" id="adminTabCatalog">
+          <div class="admin-toolbar">
+            <input type="text" id="adminCatalogSearch" placeholder="Filter database shows by title or genre...">
+            <button class="tool-btn-highlight" id="adminAddNewBtn"><i data-lucide="plus"></i> New Show</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Poster</th>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Episodes</th>
+                  <th>Spotlight</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminCatalogTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 2: Add/Edit Form -->
+        <div class="admin-tab-content" id="adminTabAdd">
+          <form class="admin-form" id="adminAnimeForm">
+            <input type="hidden" id="adminEditId" value="">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label>Anime Title *</label>
+                <input type="text" id="adminFormTitle" required placeholder="e.g. Kaiju No. 8">
+              </div>
+              <div class="form-group flex-1">
+                <label>Type</label>
+                <select id="adminFormType">
+                  <option value="TV Series">TV Series</option>
+                  <option value="Movie">Movie</option>
+                  <option value="OVA">OVA</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Poster / Cover URL</label>
+                <input type="url" id="adminFormCover" placeholder="https://cdn.myanimelist.net/images/...">
+              </div>
+              <div class="form-group">
+                <label>Hero Banner URL</label>
+                <input type="url" id="adminFormBanner" placeholder="https://images.alphacoders.com/...">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Episode Count</label>
+                <input type="number" id="adminFormEpisodes" min="1" max="1500" value="12">
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="adminFormStatus">
+                  <option value="Completed">Completed</option>
+                  <option value="Currently Airing">Currently Airing</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Genres (comma separated)</label>
+                <input type="text" id="adminFormGenres" placeholder="Action, Fantasy, Sci-Fi">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Synopsis</label>
+              <textarea id="adminFormSynopsis" rows="3" placeholder="Plot description..."></textarea>
+            </div>
+            <div class="form-group-checkbox">
+              <label>
+                <input type="checkbox" id="adminFormSpotlight">
+                <span>Feature in Homepage Spotlight Hero Carousel</span>
+              </label>
+            </div>
+            <div class="admin-form-actions">
+              <button type="submit" class="admin-submit-btn" id="adminSaveBtn"><i data-lucide="save"></i> Save Show to Catalog</button>
+              <button type="button" class="admin-cancel-btn" id="adminResetBtn">Reset Form</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Tab 3: Spotlight Manager -->
+        <div class="admin-tab-content" id="adminTabSpotlight">
+          <div class="spotlight-manager-header">
+            <p>Click "Toggle Spotlight" on any show below to feature it on the homepage carousel (recommended 4-6 titles).</p>
+          </div>
+          <div class="spotlight-manager-grid" id="spotlightManagerGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Analytics & Otaku Wrapped Dashboard Modal -->
+  <div class="player-modal" id="otakuWrappedModal">
+    <div class="player-overlay" id="otakuWrappedOverlay"></div>
+    <div class="player-container wrapped-container">
+      <div class="player-header">
+        <div class="wrapped-header-title">
+          <h3><i data-lucide="sparkles"></i> Otaku Wrapped & User Analytics</h3>
+          <span class="user-status-badge">Live Profile Insights</span>
+        </div>
+        <button class="close-modal-btn" id="closeOtakuWrappedBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="wrapped-body" id="otakuWrappedBody">
+        <!-- Injected dynamically -->
       </div>
     </div>
   </div>

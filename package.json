@@ -1,15 +1,19 @@
 {
   "name": "hianime-local",
-  "version": "1.0.0",
-  "description": "HiAnime theme local anime streaming and discovery platform",
+  "version": "5.0.0",
+  "description": "HiAnime v5.0 Enterprise anime streaming, discovery, and CMS platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "test": "node tests/v5-verify.js",
     "tunnel": "npx --yes cloudflared tunnel --url http://localhost:3000"
   },
   "dependencies": {
     "@consumet/extensions": "^1.8.8",
     "cors": "^2.8.5",
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.15.0"
   }
 }

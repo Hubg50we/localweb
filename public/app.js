@@ -90,18 +90,71 @@ const importFileInput = document.getElementById('importFileInput');
 const profileExportBackup = document.getElementById('profileExportBackup');
 const profileImportBackup = document.getElementById('profileImportBackup');
 
+// Command Palette Elements (v5.0)
+const paletteTriggerBtn = document.getElementById('paletteTriggerBtn');
+const commandPaletteModal = document.getElementById('commandPaletteModal');
+const paletteOverlay = document.getElementById('paletteOverlay');
+const paletteInput = document.getElementById('paletteInput');
+const paletteResults = document.getElementById('paletteResults');
+
+// Admin Studio Elements (v5.0)
+const openAdminStudioBtn = document.getElementById('openAdminStudioBtn');
+const adminStudioModal = document.getElementById('adminStudioModal');
+const adminStudioOverlay = document.getElementById('adminStudioOverlay');
+const closeAdminStudioBtn = document.getElementById('closeAdminStudioBtn');
+const adminShowsCount = document.getElementById('adminShowsCount');
+const adminCatalogSearch = document.getElementById('adminCatalogSearch');
+const adminCatalogTbody = document.getElementById('adminCatalogTbody');
+const adminAddNewBtn = document.getElementById('adminAddNewBtn');
+const adminAnimeForm = document.getElementById('adminAnimeForm');
+const adminEditId = document.getElementById('adminEditId');
+const adminFormTitle = document.getElementById('adminFormTitle');
+const adminFormType = document.getElementById('adminFormType');
+const adminFormCover = document.getElementById('adminFormCover');
+const adminFormBanner = document.getElementById('adminFormBanner');
+const adminFormEpisodes = document.getElementById('adminFormEpisodes');
+const adminFormStatus = document.getElementById('adminFormStatus');
+const adminFormGenres = document.getElementById('adminFormGenres');
+const adminFormSynopsis = document.getElementById('adminFormSynopsis');
+const adminFormSpotlight = document.getElementById('adminFormSpotlight');
+const adminResetBtn = document.getElementById('adminResetBtn');
+const spotlightManagerGrid = document.getElementById('spotlightManagerGrid');
+
+// Otaku Wrapped Elements (v5.0)
+const openOtakuStatsBtn = document.getElementById('openOtakuStatsBtn');
+const otakuWrappedModal = document.getElementById('otakuWrappedModal');
+const otakuWrappedOverlay = document.getElementById('otakuWrappedOverlay');
+const closeOtakuWrappedBtn = document.getElementById('closeOtakuWrappedBtn');
+const otakuWrappedBody = document.getElementById('otakuWrappedBody');
+
 // Watch Party & State Management
 let activePartyRoom = null;
 let partyPollTimer = null;
 let currentAnimeBookmarks = [];
+let paletteSelectedIndex = 0;
+let paletteItemsList = [];
+
+// Register Offline Service Worker (v5.0 PWA)
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      console.log('[PWA] Service Worker registered with scope:', reg.scope);
+    }).catch((err) => {
+      console.warn('[PWA] Service Worker registration failed:', err);
+    });
+  });
+}
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
+  initThemeEngine();
   updateWatchlistBadge();
   renderContinueWatching();
   await loadData();
   await initSchedule();
   setupEventListeners();
+  setupPaletteListeners();
+  setupAdminListeners();
   checkUrlPartyParams();
   if (window.lucide) lucide.createIcons();
 });
@@ -1203,12 +1256,31 @@ function setupEventListeners() {
     }
   });
 
-  // Global Keyboard Shortcuts (N, P, L, T, ESC)
+  // Global Keyboard Shortcuts (N, P, L, T, Ctrl+K, ESC)
   document.addEventListener('keydown', (e) => {
     const activeEl = document.activeElement;
     const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
 
+    // Command Palette Trigger: Ctrl+K / Cmd+K
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      openCommandPalette();
+      return;
+    }
+
     if (e.key === 'Escape') {
+      if (commandPaletteModal && commandPaletteModal.classList.contains('active')) {
+        closeCommandPalette();
+        return;
+      }
+      if (adminStudioModal && adminStudioModal.classList.contains('active')) {
+        closeAdminStudio();
+        return;
+      }
+      if (otakuWrappedModal && otakuWrappedModal.classList.contains('active')) {
+        closeOtakuStats();
+        return;
+      }
       if (playerModal && playerModal.classList.contains('lights-off')) {
         toggleLightsOff(false);
         return;
@@ -1792,3 +1864,642 @@ function handleImportBackupFile(file) {
   };
   reader.readAsText(file);
 }
+
+// ========================================================
+// v5.0 Enterprise Modules: Theme Engine, Command Palette,
+// Admin CMS Studio & Otaku Wrapped Analytics
+// ========================================================
+
+// 1. Dynamic Neon Theme Engine
+function initThemeEngine() {
+  const savedTheme = localStorage.getItem('hianime_theme') || 'sakura';
+  applyTheme(savedTheme);
+
+  const dots = document.querySelectorAll('.theme-dot');
+  dots.forEach(dot => {
+    dot.addEventListener('click', (e) => {
+      e.preventDefault();
+      const theme = dot.dataset.theme;
+      applyTheme(theme);
+    });
+  });
+}
+
+function applyTheme(themeName) {
+  const validThemes = ['sakura', 'crimson', 'cyan', 'purple', 'gold'];
+  const theme = validThemes.includes(themeName) ? themeName : 'sakura';
+  document.body.dataset.theme = theme;
+  localStorage.setItem('hianime_theme', theme);
+
+  document.querySelectorAll('.theme-dot').forEach(dot => {
+    dot.classList.toggle('active', dot.dataset.theme === theme);
+  });
+}
+
+// 2. Global Command Palette (Ctrl+K / Cmd+K)
+function setupPaletteListeners() {
+  if (paletteTriggerBtn) {
+    paletteTriggerBtn.addEventListener('click', openCommandPalette);
+  }
+  if (paletteOverlay) {
+    paletteOverlay.addEventListener('click', closeCommandPalette);
+  }
+  if (paletteInput) {
+    paletteInput.addEventListener('input', (e) => {
+      renderPaletteResults(e.target.value.trim());
+    });
+    paletteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        navigatePalette(1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        navigatePalette(-1);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        executePaletteItem(paletteSelectedIndex);
+      }
+    });
+  }
+}
+
+function openCommandPalette() {
+  if (!commandPaletteModal) return;
+  commandPaletteModal.classList.add('active');
+  if (paletteInput) {
+    paletteInput.value = '';
+    paletteInput.focus();
+  }
+  renderPaletteResults('');
+}
+
+function closeCommandPalette() {
+  if (!commandPaletteModal) return;
+  commandPaletteModal.classList.remove('active');
+}
+
+function getPaletteActionItems() {
+  return [
+    {
+      type: 'action',
+      title: 'Toggle Lights Off Mode',
+      desc: 'Dim everything outside the video player',
+      icon: 'lightbulb',
+      shortcut: 'L',
+      action: () => toggleLightsOff()
+    },
+    {
+      type: 'action',
+      title: 'Toggle Theater Mode',
+      desc: 'Expand video player to full 95vw width',
+      icon: 'maximize-2',
+      shortcut: 'T',
+      action: () => toggleTheaterMode()
+    },
+    {
+      type: 'action',
+      title: 'Open Watchlist Drawer',
+      desc: 'View and manage your saved anime titles',
+      icon: 'bookmark',
+      shortcut: '',
+      action: () => {
+        renderWatchlistDrawer();
+        if (watchlistDrawer) watchlistDrawer.classList.add('open');
+      }
+    },
+    {
+      type: 'action',
+      title: 'Surprise Me / Random Anime',
+      desc: 'Instantly watch a random anime from the catalog',
+      icon: 'shuffle',
+      shortcut: '',
+      action: () => {
+        if (currentAnimeList.length > 0) {
+          const rand = currentAnimeList[Math.floor(Math.random() * currentAnimeList.length)];
+          openWatchModal(rand.id, 1);
+        }
+      }
+    },
+    {
+      type: 'action',
+      title: 'Open Admin CMS Studio',
+      desc: 'Add, edit, or feature anime in the hero spotlight',
+      icon: 'layout-dashboard',
+      shortcut: '',
+      action: () => openAdminStudio()
+    },
+    {
+      type: 'action',
+      title: 'Otaku Wrapped & User Stats',
+      desc: 'View your live watch time, top genres, and rank badges',
+      icon: 'bar-chart-2',
+      shortcut: '',
+      action: () => openOtakuStats()
+    },
+    {
+      type: 'action',
+      title: 'Export Profile Backup (JSON)',
+      desc: 'Download your full watchlist, history, and bookmarks',
+      icon: 'download',
+      shortcut: '',
+      action: () => exportHiAnimeBackup()
+    },
+    {
+      type: 'action',
+      title: 'Switch Theme: Cyberpunk Crimson',
+      desc: 'Apply the high-octane crimson red neon palette',
+      icon: 'palette',
+      shortcut: '',
+      action: () => applyTheme('crimson')
+    },
+    {
+      type: 'action',
+      title: 'Switch Theme: Electric Cyan',
+      desc: 'Apply the futuristic high-tech cyan blue palette',
+      icon: 'palette',
+      shortcut: '',
+      action: () => applyTheme('cyan')
+    },
+    {
+      type: 'action',
+      title: 'Switch Theme: Sakura Pink',
+      desc: 'Apply the signature HiAnime vibrant pink aesthetic',
+      icon: 'palette',
+      shortcut: '',
+      action: () => applyTheme('sakura')
+    },
+    {
+      type: 'navigation',
+      title: 'Filter: Movies',
+      desc: 'Show all anime theatrical releases & films',
+      icon: 'film',
+      shortcut: '',
+      action: () => {
+        const filterLink = document.querySelector('.sub-nav a[data-filter="Movie"]');
+        if (filterLink) filterLink.click();
+      }
+    },
+    {
+      type: 'navigation',
+      title: 'Filter: Top Airing',
+      desc: 'Show all currently airing weekly anime broadcasts',
+      icon: 'flame',
+      shortcut: '',
+      action: () => {
+        const tabLink = document.querySelector('.sub-nav a[data-tab="airing"]');
+        if (tabLink) tabLink.click();
+      }
+    },
+    {
+      type: 'navigation',
+      title: 'Filter: Completed Shows',
+      desc: 'Show all binge-ready finished anime series',
+      icon: 'check-circle',
+      shortcut: '',
+      action: () => {
+        const compLink = document.querySelector('.sub-nav a[data-tab="completed"]');
+        if (compLink) compLink.click();
+      }
+    },
+    {
+      type: 'navigation',
+      title: 'Jump to Estimated Broadcast Schedule',
+      desc: 'View Monday–Sunday airing times and live releases',
+      icon: 'calendar',
+      shortcut: '',
+      action: () => {
+        if (scheduleGrid) window.scrollTo({ top: scheduleGrid.offsetTop - 140, behavior: 'smooth' });
+      }
+    }
+  ];
+}
+
+function renderPaletteResults(query) {
+  if (!paletteResults) return;
+  const q = (query || '').toLowerCase().trim();
+  paletteItemsList = [];
+
+  const actions = getPaletteActionItems().filter(item => 
+    !q || item.title.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q)
+  );
+
+  const animeMatches = currentAnimeList.filter(anime =>
+    !q || anime.title.toLowerCase().includes(q) || 
+    (anime.romajiTitle && anime.romajiTitle.toLowerCase().includes(q)) ||
+    anime.genres.some(g => g.toLowerCase().includes(q))
+  ).slice(0, 15).map(anime => ({
+    type: 'anime',
+    id: anime.id,
+    title: anime.title,
+    desc: `${anime.type || 'TV'} • ${anime.subEpisodes || 12} Episodes • ★ ${anime.rating}`,
+    icon: 'play-circle',
+    shortcut: 'Watch',
+    action: () => openWatchModal(anime.id, 1)
+  }));
+
+  paletteItemsList = [...actions, ...animeMatches];
+  paletteSelectedIndex = 0;
+
+  if (paletteItemsList.length === 0) {
+    paletteResults.innerHTML = `
+      <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+        No results found for "${query}". Try searching an anime title or command.
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  if (actions.length > 0) {
+    html += `<div class="palette-group-title">Quick Actions & Navigation</div>`;
+    actions.forEach((item) => {
+      const idx = paletteItemsList.indexOf(item);
+      html += renderPaletteRow(item, idx);
+    });
+  }
+
+  if (animeMatches.length > 0) {
+    html += `<div class="palette-group-title">Anime Catalog (${animeMatches.length})</div>`;
+    animeMatches.forEach((item) => {
+      const idx = paletteItemsList.indexOf(item);
+      html += renderPaletteRow(item, idx);
+    });
+  }
+
+  paletteResults.innerHTML = html;
+  highlightPaletteSelection();
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderPaletteRow(item, idx) {
+  return `
+    <div class="palette-item ${idx === paletteSelectedIndex ? 'active' : ''}" data-idx="${idx}" onclick="executePaletteItem(${idx})">
+      <i data-lucide="${item.icon || 'terminal'}" class="palette-item-icon"></i>
+      <div class="palette-item-info">
+        <div class="palette-item-title">${item.title}</div>
+        <div class="palette-item-desc">${item.desc}</div>
+      </div>
+      ${item.shortcut ? `<span class="palette-item-shortcut"><kbd>${item.shortcut}</kbd></span>` : ''}
+    </div>
+  `;
+}
+
+function navigatePalette(direction) {
+  if (paletteItemsList.length === 0) return;
+  paletteSelectedIndex = (paletteSelectedIndex + direction + paletteItemsList.length) % paletteItemsList.length;
+  highlightPaletteSelection();
+}
+
+function highlightPaletteSelection() {
+  const items = document.querySelectorAll('.palette-item');
+  items.forEach((el, idx) => {
+    el.classList.toggle('active', idx === paletteSelectedIndex);
+    if (idx === paletteSelectedIndex) {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  });
+}
+
+function executePaletteItem(index) {
+  const item = paletteItemsList[index];
+  if (item && typeof item.action === 'function') {
+    closeCommandPalette();
+    item.action();
+  }
+}
+
+// 3. Built-In Admin Studio / CMS
+function setupAdminListeners() {
+  if (openAdminStudioBtn) {
+    openAdminStudioBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openAdminStudio();
+    });
+  }
+  if (closeAdminStudioBtn) {
+    closeAdminStudioBtn.addEventListener('click', closeAdminStudio);
+  }
+  if (adminStudioOverlay) {
+    adminStudioOverlay.addEventListener('click', closeAdminStudio);
+  }
+
+  // Admin Tab Switching
+  const adminTabs = document.querySelectorAll('.admin-tab-btn');
+  adminTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      adminTabs.forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+
+      const targetTab = tab.dataset.tab;
+      if (targetTab === 'catalog') {
+        document.getElementById('adminTabCatalog').classList.add('active');
+        renderAdminCatalogTable();
+      } else if (targetTab === 'add') {
+        document.getElementById('adminTabAdd').classList.add('active');
+      } else if (targetTab === 'spotlight') {
+        document.getElementById('adminTabSpotlight').classList.add('active');
+        renderSpotlightManagerGrid();
+      }
+    });
+  });
+
+  if (adminAddNewBtn) {
+    adminAddNewBtn.addEventListener('click', () => {
+      resetAdminForm();
+      const addTabBtn = document.querySelector('.admin-tab-btn[data-tab="add"]');
+      if (addTabBtn) addTabBtn.click();
+    });
+  }
+
+  if (adminCatalogSearch) {
+    adminCatalogSearch.addEventListener('input', (e) => {
+      renderAdminCatalogTable(e.target.value.toLowerCase().trim());
+    });
+  }
+
+  if (adminAnimeForm) {
+    adminAnimeForm.addEventListener('submit', handleAdminFormSubmit);
+  }
+
+  if (adminResetBtn) {
+    adminResetBtn.addEventListener('click', resetAdminForm);
+  }
+
+  // Otaku Stats Listeners
+  if (openOtakuStatsBtn) {
+    openOtakuStatsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openOtakuStats();
+    });
+  }
+  if (closeOtakuWrappedBtn) {
+    closeOtakuWrappedBtn.addEventListener('click', closeOtakuStats);
+  }
+  if (otakuWrappedOverlay) {
+    otakuWrappedOverlay.addEventListener('click', closeOtakuStats);
+  }
+}
+
+function openAdminStudio() {
+  if (!adminStudioModal) return;
+  if (adminShowsCount) {
+    adminShowsCount.textContent = `${currentAnimeList.length} Shows`;
+  }
+  renderAdminCatalogTable();
+  adminStudioModal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeAdminStudio() {
+  if (!adminStudioModal) return;
+  adminStudioModal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function renderAdminCatalogTable(filter = '') {
+  if (!adminCatalogTbody) return;
+  const filtered = currentAnimeList.filter(a => 
+    !filter || a.title.toLowerCase().includes(filter) || 
+    (a.genres && a.genres.some(g => g.toLowerCase().includes(filter)))
+  );
+
+  adminCatalogTbody.innerHTML = filtered.map(a => `
+    <tr>
+      <td><img src="${a.poster || a.cover}" alt="${a.title}" class="admin-poster-mini"></td>
+      <td><strong>${a.title}</strong></td>
+      <td>${a.type || 'TV Series'}</td>
+      <td><span class="user-status-badge">${a.status || 'Completed'}</span></td>
+      <td>${a.subEpisodes || 12}</td>
+      <td>${a.spotlight ? '★ Featured' : '—'}</td>
+      <td>
+        <button class="admin-action-btn" title="Edit Show" onclick="editAdminShow('${a.id}')"><i data-lucide="edit-3"></i></button>
+        <button class="admin-action-btn del" title="Delete Show" onclick="deleteAdminShow('${a.id}')"><i data-lucide="trash-2"></i></button>
+      </td>
+    </tr>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function resetAdminForm() {
+  if (!adminAnimeForm) return;
+  adminEditId.value = '';
+  adminFormTitle.value = '';
+  adminFormCover.value = '';
+  adminFormBanner.value = '';
+  adminFormEpisodes.value = '12';
+  adminFormType.value = 'TV Series';
+  adminFormStatus.value = 'Completed';
+  adminFormGenres.value = '';
+  adminFormSynopsis.value = '';
+  adminFormSpotlight.checked = false;
+  if (adminSaveBtn) adminSaveBtn.innerHTML = `<i data-lucide="save"></i> Save Show to Catalog`;
+  if (window.lucide) lucide.createIcons();
+}
+
+function editAdminShow(id) {
+  const anime = currentAnimeList.find(a => a.id === id);
+  if (!anime) return;
+
+  adminEditId.value = anime.id;
+  adminFormTitle.value = anime.title || '';
+  adminFormCover.value = anime.cover || anime.poster || '';
+  adminFormBanner.value = anime.banner || '';
+  adminFormEpisodes.value = anime.subEpisodes || 12;
+  adminFormType.value = anime.type || 'TV Series';
+  adminFormStatus.value = anime.status || 'Completed';
+  adminFormGenres.value = (anime.genres || []).join(', ');
+  adminFormSynopsis.value = anime.synopsis || '';
+  adminFormSpotlight.checked = Boolean(anime.spotlight);
+
+  if (adminSaveBtn) adminSaveBtn.innerHTML = `<i data-lucide="check-circle"></i> Update Show`;
+
+  const addTabBtn = document.querySelector('.admin-tab-btn[data-tab="add"]');
+  if (addTabBtn) addTabBtn.click();
+}
+
+async function handleAdminFormSubmit(e) {
+  e.preventDefault();
+  const id = adminEditId.value;
+  const payload = {
+    title: adminFormTitle.value.trim(),
+    type: adminFormType.value,
+    cover: adminFormCover.value.trim(),
+    banner: adminFormBanner.value.trim(),
+    subEpisodes: parseInt(adminFormEpisodes.value) || 12,
+    status: adminFormStatus.value,
+    genres: adminFormGenres.value.split(',').map(g => g.trim()).filter(Boolean),
+    synopsis: adminFormSynopsis.value.trim(),
+    spotlight: adminFormSpotlight.checked
+  };
+
+  try {
+    const url = id ? `/api/admin/anime/${encodeURIComponent(id)}` : '/api/admin/anime';
+    const method = id ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(r => r.json());
+
+    if (res && res.success) {
+      alert(`Success: ${res.message}`);
+      await loadData(); // Refresh UI catalog
+      resetAdminForm();
+      const catalogTabBtn = document.querySelector('.admin-tab-btn[data-tab="catalog"]');
+      if (catalogTabBtn) catalogTabBtn.click();
+    } else {
+      alert(`Failed to save: ${res.message || 'Unknown error'}`);
+    }
+  } catch (err) {
+    alert(`Server error: ${err.message}`);
+  }
+}
+
+async function deleteAdminShow(id) {
+  const anime = currentAnimeList.find(a => a.id === id);
+  if (!confirm(`Are you sure you want to permanently delete "${anime ? anime.title : id}"?`)) return;
+
+  try {
+    const res = await fetch(`/api/admin/anime/${encodeURIComponent(id)}`, { method: 'DELETE' }).then(r => r.json());
+    if (res && res.success) {
+      await loadData();
+      renderAdminCatalogTable();
+    } else {
+      alert(`Delete failed: ${res.message}`);
+    }
+  } catch (err) {
+    alert(`Delete error: ${err.message}`);
+  }
+}
+
+function renderSpotlightManagerGrid() {
+  if (!spotlightManagerGrid) return;
+  spotlightManagerGrid.innerHTML = currentAnimeList.map(a => `
+    <div class="spotlight-card ${a.spotlight ? 'featured' : ''}">
+      <img src="${a.poster || a.cover}" alt="${a.title}">
+      <div class="spotlight-card-info">
+        <h4>${a.title}</h4>
+        <button class="spotlight-toggle-btn ${a.spotlight ? 'active' : ''}" onclick="toggleSpotlightStatus('${a.id}')">
+          ${a.spotlight ? '★ In Spotlight' : '+ Add Spotlight'}
+        </button>
+      </div>
+    </div>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+async function toggleSpotlightStatus(id) {
+  const anime = currentAnimeList.find(a => a.id === id);
+  if (!anime) return;
+
+  const newStatus = !anime.spotlight;
+  try {
+    const res = await fetch(`/api/admin/anime/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spotlight: newStatus })
+    }).then(r => r.json());
+
+    if (res && res.success) {
+      anime.spotlight = newStatus;
+      await loadData();
+      renderSpotlightManagerGrid();
+    }
+  } catch (err) {
+    console.warn('Failed to toggle spotlight:', err);
+  }
+}
+
+// 4. User Analytics & Otaku Wrapped Dashboard
+function openOtakuStats() {
+  if (!otakuWrappedModal || !otakuWrappedBody) return;
+
+  const history = JSON.parse(localStorage.getItem('hianime_watch_history') || '[]');
+  const savedWatchlist = JSON.parse(localStorage.getItem('hianime_watchlist') || '[]');
+  const ratings = JSON.parse(localStorage.getItem('hianime_ratings') || '{}');
+
+  const totalEpisodesWatched = history.reduce((acc, item) => acc + (item.currentEpisode || 1), 0);
+  const estimatedHours = ((totalEpisodesWatched * 24) / 60).toFixed(1);
+
+  // Genre breakdown
+  const genreCounts = {};
+  history.forEach(item => {
+    const anime = currentAnimeList.find(a => a.id === item.animeId);
+    if (anime && anime.genres) {
+      anime.genres.forEach(g => {
+        genreCounts[g] = (genreCounts[g] || 0) + 1;
+      });
+    }
+  });
+
+  const sortedGenres = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const maxGenreCount = sortedGenres[0] ? sortedGenres[0][1] : 1;
+
+  // Completion calculation
+  const completedCount = history.filter(h => h.totalEpisodes && h.currentEpisode >= h.totalEpisodes).length;
+  const completionRate = history.length > 0 ? Math.round((completedCount / history.length) * 100) : 0;
+
+  // Otaku Rank
+  let otakuRank = 'Genin Rookie';
+  if (totalEpisodesWatched >= 100) otakuRank = 'Anime Hashira';
+  else if (totalEpisodesWatched >= 40) otakuRank = 'Chunin Veteran';
+  else if (totalEpisodesWatched >= 15) otakuRank = 'Jonin Enthusiast';
+
+  otakuWrappedBody.innerHTML = `
+    <div class="wrapped-hero-stats">
+      <div class="wrapped-stat-card">
+        <span class="val">${totalEpisodesWatched}</span>
+        <span class="lbl">Episodes Watched</span>
+      </div>
+      <div class="wrapped-stat-card">
+        <span class="val">${estimatedHours}h</span>
+        <span class="lbl">Estimated Time</span>
+      </div>
+      <div class="wrapped-stat-card">
+        <span class="val">${completionRate}%</span>
+        <span class="lbl">Completion Rate</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="wrapped-section-title"><i data-lucide="award"></i> Otaku Badges & Ranking</div>
+      <div class="wrapped-badges-row">
+        <span class="otaku-badge highlight"><i data-lucide="crown"></i> Rank: ${otakuRank}</span>
+        <span class="otaku-badge"><i data-lucide="flame"></i> 7-Day Watch Streak</span>
+        <span class="otaku-badge"><i data-lucide="bookmark"></i> ${savedWatchlist.length} in Watchlist</span>
+        <span class="otaku-badge"><i data-lucide="star"></i> ${Object.keys(ratings).length} Rated Anime</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="wrapped-section-title"><i data-lucide="pie-chart"></i> Top Favorite Genres</div>
+      <div class="wrapped-genre-bars">
+        ${sortedGenres.length > 0 ? sortedGenres.map(([genre, count]) => `
+          <div class="genre-bar-row">
+            <div class="genre-bar-info">
+              <span><strong>${genre}</strong></span>
+              <span>${count} shows</span>
+            </div>
+            <div class="genre-bar-track">
+              <div class="genre-bar-fill" style="width: ${Math.round((count / maxGenreCount) * 100)}%;"></div>
+            </div>
+          </div>
+        `).join('') : '<p style="color: var(--text-muted); font-size: 0.85rem;">Watch episodes to generate your dynamic genre affinities!</p>'}
+      </div>
+    </div>
+  `;
+
+  otakuWrappedModal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeOtakuStats() {
+  if (!otakuWrappedModal) return;
+  otakuWrappedModal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+

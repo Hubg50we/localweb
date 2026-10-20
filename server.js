@@ -1,10 +1,18 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const https = require('https');
 const { META, ANIME } = require('@consumet/extensions');
 let animeDatabase = require('./data/anime-data');
 const aniCli = require('./ani-cli-bridge');
+
+// Helper to persist animeDatabase changes to data/anime-data.js
+function saveAnimeDatabaseToDisk() {
+  const filePath = path.join(__dirname, 'data', 'anime-data.js');
+  const fileContent = `const animeDatabase = ${JSON.stringify(animeDatabase, null, 2)};\n\nif (typeof module !== "undefined" && module.exports) {\n  module.exports = animeDatabase;\n}\n`;
+  fs.writeFileSync(filePath, fileContent, 'utf-8');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +27,13 @@ app.use(express.json());
 app.get('/manifest.json', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json');
   res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
+
+// Serve Service Worker with application/javascript and Service-Worker-Allowed header
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -310,7 +325,146 @@ app.get('/api/live/schedule', async (req, res) => {
   res.json({ success: true, day: targetDay, source: 'local_fallback', data: fallbackData });
 });
 
-// 7. POST /api/admin/sync-catalog - Reloads local anime-data or synchronizes catalog
+// 7. Admin Catalog Management API (v5.0 CMS Studio)
+// POST /api/admin/anime - Create a new anime
+app.post('/api/admin/anime', (req, res) => {
+  try {
+    const { title, cover, banner, type, status, subEpisodes, genres, synopsis, spotlight } = req.body;
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'Anime title is required' });
+    }
+
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `anime-${Date.now()}`;
+    const malId = Math.floor(10000 + Math.random() * 90000);
+    const epCount = parseInt(subEpisodes) || 12;
+
+    const newAnime = {
+      id: slug,
+      malId: String(malId),
+      title: title.trim(),
+      romajiTitle: title.trim(),
+      spotlight: Boolean(spotlight),
+      banner: banner || cover || 'https://images.alphacoders.com/134/1347318.png',
+      poster: cover || 'https://cdn.myanimelist.net/images/anime/1838/141442.jpg',
+      rating: '8.8',
+      type: type || 'TV Series',
+      duration: '24m',
+      subEpisodes: epCount,
+      dubEpisodes: Math.max(1, epCount - 1),
+      status: status || 'Completed',
+      season: '2024',
+      studio: 'Studio',
+      genres: Array.isArray(genres) ? genres : (genres ? String(genres).split(',').map(g => g.trim()) : ['Action', 'Fantasy']),
+      synopsis: synopsis || 'No synopsis provided.',
+      mal_id: malId,
+      cover: cover || 'https://cdn.myanimelist.net/images/anime/1838/141442.jpg',
+      episodes: Array.from({ length: epCount }, (_, i) => {
+        const epNum = i + 1;
+        return {
+          number: epNum,
+          title: `Episode ${epNum}`,
+          duration: '24:00',
+          thumbnail: banner || cover || 'https://images.alphacoders.com/134/1347318.png',
+          embedUrl: `https://vidsrc.pm/embed/anime/${malId}/${epNum}`,
+          megaCloudUrl: `https://multiembed.mov/?video_id=${malId}&ep=${epNum}&an=1`,
+          twoEmbedUrl: `https://www.2embed.cc/embed/anime/${malId}/${epNum}`,
+          vidsrcClassicUrl: `https://vidsrc.me/embed/anime?mal=${malId}&ep=${epNum}`
+        };
+      })
+    };
+
+    // If marked spotlight, ensure at most 6 are spotlights
+    if (newAnime.spotlight) {
+      animeDatabase.unshift(newAnime);
+    } else {
+      animeDatabase.push(newAnime);
+    }
+
+    saveAnimeDatabaseToDisk();
+    console.log(`[Admin CMS] Created anime: ${newAnime.title} (${newAnime.id})`);
+    return res.status(201).json({ success: true, message: 'Anime created successfully', data: newAnime });
+  } catch (err) {
+    console.error('[Admin CMS] Create anime error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to create anime', error: err.message });
+  }
+});
+
+// PUT /api/admin/anime/:id - Update existing anime
+app.put('/api/admin/anime/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const index = animeDatabase.findIndex(a => a.id === id);
+    if (index === -1) {
+      return res.status(404).json({ success: false, message: 'Anime not found' });
+    }
+
+    const existing = animeDatabase[index];
+    const { title, cover, banner, type, status, subEpisodes, genres, synopsis, spotlight } = req.body;
+
+    if (title) existing.title = title.trim();
+    if (cover) {
+      existing.poster = cover;
+      existing.cover = cover;
+    }
+    if (banner) existing.banner = banner;
+    if (type) existing.type = type;
+    if (status) existing.status = status;
+    if (synopsis) existing.synopsis = synopsis;
+    if (spotlight !== undefined) existing.spotlight = Boolean(spotlight);
+    if (genres) {
+      existing.genres = Array.isArray(genres) ? genres : String(genres).split(',').map(g => g.trim());
+    }
+    if (subEpisodes) {
+      const epCount = parseInt(subEpisodes);
+      if (epCount > 0 && epCount !== existing.subEpisodes) {
+        existing.subEpisodes = epCount;
+        existing.dubEpisodes = Math.max(1, epCount - 1);
+        const malId = existing.malId || existing.mal_id || '52299';
+        existing.episodes = Array.from({ length: epCount }, (_, i) => {
+          const epNum = i + 1;
+          return {
+            number: epNum,
+            title: `Episode ${epNum}`,
+            duration: '24:00',
+            thumbnail: existing.banner || existing.cover,
+            embedUrl: `https://vidsrc.pm/embed/anime/${malId}/${epNum}`,
+            megaCloudUrl: `https://multiembed.mov/?video_id=${malId}&ep=${epNum}&an=1`,
+            twoEmbedUrl: `https://www.2embed.cc/embed/anime/${malId}/${epNum}`,
+            vidsrcClassicUrl: `https://vidsrc.me/embed/anime?mal=${malId}&ep=${epNum}`
+          };
+        });
+      }
+    }
+
+    saveAnimeDatabaseToDisk();
+    console.log(`[Admin CMS] Updated anime: ${existing.title} (${existing.id})`);
+    return res.json({ success: true, message: 'Anime updated successfully', data: existing });
+  } catch (err) {
+    console.error('[Admin CMS] Update anime error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to update anime', error: err.message });
+  }
+});
+
+// DELETE /api/admin/anime/:id - Delete anime
+app.delete('/api/admin/anime/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const index = animeDatabase.findIndex(a => a.id === id);
+    if (index === -1) {
+      return res.status(404).json({ success: false, message: 'Anime not found' });
+    }
+
+    const removed = animeDatabase.splice(index, 1)[0];
+    saveAnimeDatabaseToDisk();
+    console.log(`[Admin CMS] Deleted anime: ${removed.title} (${removed.id})`);
+    return res.json({ success: true, message: 'Anime deleted successfully', data: { id: removed.id, title: removed.title } });
+  } catch (err) {
+    console.error('[Admin CMS] Delete anime error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to delete anime', error: err.message });
+  }
+});
+
+// POST /api/admin/sync-catalog - Reloads local anime-data or synchronizes catalog
 app.post('/api/admin/sync-catalog', (req, res) => {
   try {
     delete require.cache[require.resolve('./data/anime-data')];
