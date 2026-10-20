@@ -23,6 +23,17 @@ const anilist = new META.Anilist();
 app.use(cors());
 app.use(express.json());
 
+// Health Check for Render & Cloud Monitors
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    uptime: Math.round(process.uptime()),
+    service: 'hianime-web',
+    catalogSize: animeDatabase.length,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Serve PWA Manifest with application/manifest+json
 app.get('/manifest.json', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json');
@@ -618,4 +629,12 @@ server.on('error', (err) => {
   } else {
     console.error(err);
   }
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[Process Safety] Uncaught Exception:', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process Safety] Unhandled Rejection:', reason);
 });

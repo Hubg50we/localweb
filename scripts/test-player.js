@@ -4,7 +4,7 @@ const puppeteer = require('puppeteer-core');
   const browser = await puppeteer.launch({
     executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: ['--no-sandbox']
   });
   const page = await browser.newPage();
   const consoleMessages = [];
@@ -12,24 +12,22 @@ const puppeteer = require('puppeteer-core');
   page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
 
   console.log('Navigating to GitHub Pages https://hubg50we.github.io/localweb/...');
-  await page.goto('https://hubg50we.github.io/localweb/', { waitUntil: 'networkidle2', timeout: 20000 });
+  await page.goto('https://hubg50we.github.io/localweb/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForSelector('.anime-card', { timeout: 10000 });
 
-  const firstCard = await page.$('.anime-card');
-  if (firstCard) {
-    console.log('Clicking first anime card...');
-    await firstCard.click();
-    await new Promise(r => setTimeout(r, 3000));
+  console.log('Clicking first anime card...');
+  await page.click('.anime-card');
+  await new Promise(r => setTimeout(r, 2500));
 
-    const isModalActive = await page.$eval('#playerModal', el => el.classList.contains('active'));
-    const iframeSrc = await page.$eval('#animeEmbedPlayer', el => el.src);
-    const videoStyle = await page.$eval('#animeEmbedPlayer', el => window.getComputedStyle(el).display);
-    console.log('Player modal active:', isModalActive);
-    console.log('Iframe src:', iframeSrc);
-    console.log('Iframe display style:', videoStyle);
+  const isModalActive = await page.$eval('#playerModal', el => el.classList.contains('active'));
+  const iframeSrc = await page.$eval('#animeEmbedPlayer', el => el.src);
+  const videoStyle = await page.$eval('#animeEmbedPlayer', el => window.getComputedStyle(el).display);
+  const notice = await page.$eval('#streamActiveServerNotice', el => el.innerText);
 
-    // Check if iframe loaded or threw any CSP/X-Frame-Options error
-    await page.screenshot({ path: 'modal-opened.png' });
-  }
+  console.log('Player modal active:', isModalActive);
+  console.log('Iframe src:', iframeSrc);
+  console.log('Iframe display style:', videoStyle);
+  console.log('Notice:', notice);
 
   console.log('\nAll Console logs during player open:');
   consoleMessages.forEach(m => console.log(`  [${m.type}] ${m.text}`));
