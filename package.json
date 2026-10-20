@@ -1,0 +1,14 @@
+{
+  "name": "hianime-local",
+  "version": "1.0.0",
+  "description": "HiAnime theme local anime streaming and discovery platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@consumet/extensions": "^1.8.8",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

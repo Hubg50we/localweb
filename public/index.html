@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HiAnime.to - Watch Anime Online Free in HD</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#ffbade">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons & HLS.js for ani-cli live streams -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+  <!-- Top Announcement Bar -->
+  <div class="top-bar">
+    <div class="top-bar-inner">
+      <span><i data-lucide="sparkles"></i> <strong>HiAnime v3.0 Local</strong> — High-Speed Anime Streaming Powered by Local Gateway</span>
+      <div class="top-links">
+        <a href="#" class="top-link" data-action="discord"><i data-lucide="message-square"></i> Discord</a>
+        <a href="#" class="top-link" data-action="telegram"><i data-lucide="send"></i> Telegram</a>
+        <a href="#" class="top-link" data-action="reddit"><i data-lucide="share-2"></i> Reddit</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navigation Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+          <i data-lucide="menu"></i>
+        </button>
+        <a href="/" class="brand-logo">
+          <span class="logo-hi">Hi</span><span class="logo-anime">Anime</span>
+          <span class="logo-domain">.to</span>
+        </a>
+      </div>
+
+      <!-- Live Search Bar -->
+      <div class="nav-search">
+        <div class="search-box">
+          <i data-lucide="search" class="search-icon"></i>
+          <input type="text" id="searchInput" placeholder="Search anime, movies, genres... (e.g. Solo Leveling)" autocomplete="off">
+          <button class="filter-btn" id="filterBtn" title="Advanced Filter">
+            <i data-lucide="sliders-horizontal"></i> Filter
+          </button>
+        </div>
+        <!-- Search Results Dropdown -->
+        <div class="search-dropdown" id="searchDropdown"></div>
+      </div>
+
+      <!-- Navigation Actions -->
+      <div class="nav-right">
+        <a href="https://github.com/pystardust/ani-cli" target="_blank" class="nav-action-btn anicli-badge" title="Powered by pystardust/ani-cli">
+          <i data-lucide="terminal"></i>
+          <span>ani-cli</span>
+        </a>
+        <button class="nav-action-btn" id="randomAnimeBtn" title="Random Anime">
+          <i data-lucide="shuffle"></i>
+          <span>Random</span>
+        </button>
+        <button class="nav-action-btn" id="watchlistBtn" title="My Watchlist">
+          <i data-lucide="bookmark"></i>
+          <span>Watchlist</span>
+          <span class="badge" id="watchlistCount">0</span>
+        </button>
+        <div class="nav-item-wrapper" style="position: relative;">
+          <button class="nav-action-btn notify-btn" id="notifyBtn" title="Notifications">
+            <i data-lucide="bell"></i>
+            <span class="dot"></span>
+          </button>
+          <div class="nav-popover" id="notificationsPopover">
+            <div class="popover-header">
+              <h4><i data-lucide="bell"></i> Notifications</h4>
+              <button class="text-btn" id="clearNotifyBtn">Clear</button>
+            </div>
+            <div class="popover-body" id="notifyList">
+              <div class="notify-item" data-anime="solo-leveling" data-ep="4">
+                <i data-lucide="sparkles" class="notify-icon"></i>
+                <div>
+                  <strong>Solo Leveling</strong> Ep 4 is now available in 1080p!
+                  <span class="notify-time">2 hours ago</span>
+                </div>
+              </div>
+              <div class="notify-item" data-anime="jujutsu-kaisen-s2" data-ep="3">
+                <i data-lucide="film" class="notify-icon"></i>
+                <div>
+                  <strong>Jujutsu Kaisen Season 2</strong> Ep 3 is ready!
+                  <span class="notify-time">5 hours ago</span>
+                </div>
+              </div>
+              <div class="notify-item" data-anime="frieren" data-ep="2">
+                <i data-lucide="check-circle" class="notify-icon"></i>
+                <div>
+                  <strong>Frieren: Beyond Journey's End</strong> Ep 2 stream verified.
+                  <span class="notify-time">Yesterday</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-item-wrapper" style="position: relative;">
+          <div class="user-avatar" id="userAvatarBtn" title="HiAnime Member">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=otaku" alt="Avatar">
+          </div>
+          <div class="nav-popover user-popover" id="userPopover">
+            <div class="user-popover-header">
+              <img src="https://api.dicebear.com/7.x/bottts/svg?seed=otaku" alt="Avatar" class="user-popover-avatar">
+              <div>
+                <h4 style="margin: 0; color: #fff; font-size: 0.95rem;">Otaku Explorer</h4>
+                <span class="user-status-badge">VIP Member</span>
+              </div>
+            </div>
+            <div class="user-popover-stats">
+              <div class="stat-box">
+                <span class="stat-num" id="userWatchlistCount">0</span>
+                <span class="stat-label">Saved</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-num" id="userWatchedCount">12</span>
+                <span class="stat-label">Episodes</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-num">1080p</span>
+                <span class="stat-label">Speed</span>
+              </div>
+            </div>
+            <div class="user-popover-links">
+              <a href="#" id="profileWatchlistLink"><i data-lucide="bookmark"></i> Open Watchlist</a>
+              <a href="#" id="profileRandomLink"><i data-lucide="shuffle"></i> Pick Random Anime</a>
+              <a href="#" id="profileThemeToggle"><i data-lucide="moon"></i> High Contrast Mode</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Secondary Category Navigation -->
+  <nav class="sub-nav">
+    <div class="sub-nav-inner">
+      <a href="#" class="active" data-filter="all"><i data-lucide="home"></i> Home</a>
+      <a href="#" data-filter="TV Series"><i data-lucide="tv"></i> Subbed Anime</a>
+      <a href="#" data-filter="dub"><i data-lucide="mic"></i> Dubbed Anime</a>
+      <a href="#" data-tab="airing"><i data-lucide="flame"></i> Top Airing</a>
+      <a href="#" data-tab="popular"><i data-lucide="trending-up"></i> Most Popular</a>
+      <a href="#" data-filter="Movie"><i data-lucide="film"></i> Movies</a>
+      <a href="#" data-tab="completed"><i data-lucide="check-circle-2"></i> Completed</a>
+    </div>
+  </nav>
+
+  <!-- Spotlight Carousel Hero -->
+  <section class="spotlight-section">
+    <div class="spotlight-slider" id="spotlightSlider">
+      <!-- Slides injected by JavaScript -->
+    </div>
+    <!-- Slider Navigation Buttons -->
+    <button class="slider-btn prev" id="sliderPrev"><i data-lucide="chevron-left"></i></button>
+    <button class="slider-btn next" id="sliderNext"><i data-lucide="chevron-right"></i></button>
+    <div class="slider-dots" id="sliderDots"></div>
+  </section>
+
+  <!-- Trending Top 10 Rail -->
+  <section class="trending-rail-section">
+    <div class="section-header">
+      <h2 class="section-title"><i data-lucide="trending-up" class="title-icon"></i> Trending Now</h2>
+      <div class="rail-nav">
+        <button id="railPrev"><i data-lucide="arrow-left"></i></button>
+        <button id="railNext"><i data-lucide="arrow-right"></i></button>
+      </div>
+    </div>
+    <div class="trending-track-wrapper">
+      <div class="trending-track" id="trendingTrack">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Layout (Grid + Sidebar) -->
+  <main class="main-container">
+    <div class="content-left">
+      <!-- Category Tabs and Quick Genre Filter -->
+      <div class="filter-header">
+        <div class="category-tabs">
+          <button class="tab-btn active" data-tab="all">All Anime</button>
+          <button class="tab-btn" data-tab="popular">Most Popular</button>
+          <button class="tab-btn" data-tab="airing">Top Airing</button>
+          <button class="tab-btn" data-tab="completed">Latest Completed</button>
+        </div>
+        <div class="genre-pills" id="genrePills">
+          <button class="genre-pill active" data-genre="All">All</button>
+          <button class="genre-pill" data-genre="Action">Action</button>
+          <button class="genre-pill" data-genre="Adventure">Adventure</button>
+          <button class="genre-pill" data-genre="Fantasy">Fantasy</button>
+          <button class="genre-pill" data-genre="Supernatural">Supernatural</button>
+          <button class="genre-pill" data-genre="Comedy">Comedy</button>
+          <button class="genre-pill" data-genre="Drama">Drama</button>
+          <button class="genre-pill" data-genre="Sci-Fi">Sci-Fi</button>
+        </div>
+      </div>
+
+      <!-- Advanced Filter Panel (Toggled by Filter button) -->
+      <div class="advanced-filter-panel" id="advancedFilterPanel" style="display: none;">
+        <div class="adv-filter-grid">
+          <div class="adv-filter-group">
+            <label><i data-lucide="tv"></i> Type:</label>
+            <select id="advTypeFilter">
+              <option value="all">All Types</option>
+              <option value="TV Series">TV Series</option>
+              <option value="Movie">Movies</option>
+            </select>
+          </div>
+          <div class="adv-filter-group">
+            <label><i data-lucide="arrow-up-down"></i> Sort By:</label>
+            <select id="advSortFilter">
+              <option value="default">Default</option>
+              <option value="rating">Highest Rating</option>
+              <option value="name">A-Z Alphabetical</option>
+              <option value="episodes">Most Episodes</option>
+            </select>
+          </div>
+          <div class="adv-filter-group">
+            <label><i data-lucide="check-circle"></i> Status:</label>
+            <select id="advStatusFilter">
+              <option value="all">All Status</option>
+              <option value="Completed">Completed</option>
+              <option value="Currently Airing">Currently Airing</option>
+            </select>
+          </div>
+          <div class="adv-filter-actions">
+            <button class="btn-primary" id="applyAdvFilterBtn"><i data-lucide="check"></i> Apply</button>
+            <button class="btn-secondary" id="resetAdvFilterBtn"><i data-lucide="rotate-ccw"></i> Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Continue Watching History Section -->
+      <section class="continue-watching-section" id="continueWatchingSection" style="display: none;">
+        <div class="continue-header">
+          <h2 class="section-title"><i data-lucide="history" class="title-icon"></i> Continue Watching</h2>
+          <button class="clear-history-btn" id="clearHistoryBtn"><i data-lucide="trash-2"></i> Clear History</button>
+        </div>
+        <div class="continue-watching-track" id="continueWatchingTrack">
+          <!-- Injected by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Main Anime Cards Grid -->
+      <div class="anime-grid" id="animeGrid">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <aside class="content-right">
+      <!-- Top 10 Today/Week/Month Widget -->
+      <div class="sidebar-card top-10-card">
+        <div class="card-header">
+          <h3><i data-lucide="crown"></i> Top 10 Anime</h3>
+          <div class="rank-filter-tabs">
+            <span class="active">Today</span>
+            <span>Week</span>
+            <span>Month</span>
+          </div>
+        </div>
+        <div class="top-10-list" id="top10List">
+          <!-- Injected by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Genre Tag Cloud Widget -->
+      <div class="sidebar-card genres-card">
+        <div class="card-header">
+          <h3><i data-lucide="tags"></i> Popular Genres</h3>
+        </div>
+        <div class="genre-tags-cloud">
+          <a href="#" data-genre="Action">Action</a>
+          <a href="#" data-genre="Adventure">Adventure</a>
+          <a href="#" data-genre="Comedy">Comedy</a>
+          <a href="#" data-genre="Drama">Drama</a>
+          <a href="#" data-genre="Fantasy">Fantasy</a>
+          <a href="#" data-genre="Historical">Historical</a>
+          <a href="#" data-genre="Horror">Horror</a>
+          <a href="#" data-genre="Mystery">Mystery</a>
+          <a href="#" data-genre="Psychological">Psychological</a>
+          <a href="#" data-genre="Romance">Romance</a>
+          <a href="#" data-genre="Sci-Fi">Sci-Fi</a>
+          <a href="#" data-genre="Shounen">Shounen</a>
+          <a href="#" data-genre="Slice of Life">Slice of Life</a>
+          <a href="#" data-genre="Supernatural">Supernatural</a>
+          <a href="#" data-genre="Suspense">Suspense</a>
+        </div>
+      </div>
+
+      <!-- Stream Server Status Widget -->
+      <div class="sidebar-card status-card">
+        <div class="card-header">
+          <h3><i data-lucide="activity"></i> Gateway Status</h3>
+        </div>
+        <div class="status-items">
+          <div class="status-row">
+            <span><span class="status-indicator online"></span> VidCloud (1080p)</span>
+            <span class="status-val">Optimal</span>
+          </div>
+          <div class="status-row">
+            <span><span class="status-indicator online"></span> MegaCloud (4K)</span>
+            <span class="status-val">Optimal</span>
+          </div>
+          <div class="status-row">
+            <span><span class="status-indicator online"></span> StreamWish (Dub)</span>
+            <span class="status-val">Optimal</span>
+          </div>
+          <div class="status-row">
+            <span><span class="status-indicator online"></span> HD-1 Server</span>
+            <span class="status-val">Optimal</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Interactive HiAnime Watch Page / Player Modal -->
+  <div class="player-modal" id="playerModal">
+    <div class="player-overlay" id="playerOverlay"></div>
+    <div class="lights-off-overlay" id="lightsOffOverlay"></div>
+    <div class="player-container">
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2 id="modalAnimeTitle">Solo Leveling</h2>
+          <span class="ep-crumb" id="modalEpCrumb">Episode 1 - I'm Used to It</span>
+        </div>
+        <button class="close-modal-btn" id="closeModalBtn" title="Close Player">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="player-body">
+        <!-- Video Screen Left -->
+        <div class="video-wrapper">
+          <div class="video-inner">
+            <iframe id="animeEmbedPlayer" src="" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="origin"></iframe>
+            <video id="animeVideoPlayer" controls autoplay preload="auto" style="display:none;">
+              <source src="" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+
+          <!-- Video Controls & Server Selector -->
+          <div class="server-control-panel">
+            <div class="server-group">
+              <span class="server-group-label"><i data-lucide="server"></i> SUB:</span>
+              <button class="server-pill active" data-server="vidsrc">VidSrc HD</button>
+              <button class="server-pill" data-server="multiembed">MultiEmbed</button>
+              <button class="server-pill" data-server="twoembed">2Embed</button>
+            </div>
+            <div class="server-group">
+              <span class="server-group-label"><i data-lucide="mic"></i> DUB:</span>
+              <button class="server-pill" data-server="vidsrc-classic">VidSrc Dub</button>
+              <button class="server-pill" data-server="streamwish">StreamWish</button>
+            </div>
+            <div class="playback-toggles">
+              <button class="ep-nav-btn" id="prevEpBtn" title="Previous Episode (P)"><i data-lucide="skip-back"></i> Prev</button>
+              <button class="ep-nav-btn" id="nextEpBtn" title="Next Episode (N)">Next <i data-lucide="skip-forward"></i></button>
+              <button class="player-tool-btn" id="lightsOffBtn" title="Lights Off (L)"><i data-lucide="lightbulb"></i> Lights Off</button>
+              <button class="player-tool-btn" id="theaterModeBtn" title="Theater Mode (T)"><i data-lucide="maximize-2"></i> Theater</button>
+              <label class="toggle-control">
+                <input type="checkbox" id="autoNextCheck" checked>
+                <span>Auto Next</span>
+              </label>
+              <label class="toggle-control">
+                <input type="checkbox" id="autoPlayCheck" checked>
+                <span>Auto Play</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Anime Overview Under Player -->
+          <div class="anime-watch-meta">
+            <div class="meta-row">
+              <span class="meta-badge" id="modalScore">★ 9.2</span>
+              <span class="meta-badge" id="modalType">TV Series</span>
+              <span class="meta-badge" id="modalStudio">A-1 Pictures</span>
+              <span class="meta-badge" id="modalSeason">Winter 2024</span>
+              <button class="watchlist-action-btn" id="modalBookmarkBtn">
+                <i data-lucide="bookmark-plus"></i> Add to Watchlist
+              </button>
+            </div>
+            <p class="modal-synopsis" id="modalSynopsis"></p>
+          </div>
+        </div>
+
+        <!-- Episodes Selector Sidebar Right -->
+        <div class="episodes-sidebar">
+          <div class="episodes-header">
+            <h3>List of Episodes</h3>
+            <div class="ep-search">
+              <input type="text" id="epSearchInput" placeholder="Filter Ep...">
+            </div>
+          </div>
+          <div class="episodes-list" id="episodesList">
+            <!-- Injected by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Watchlist Drawer -->
+  <div class="drawer" id="watchlistDrawer">
+    <div class="drawer-header">
+      <h3><i data-lucide="bookmark"></i> My Watchlist</h3>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="clear-watchlist-btn" id="clearWatchlistBtn" title="Clear All">Clear All</button>
+        <button class="close-drawer-btn" id="closeDrawerBtn"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    <div class="drawer-body" id="watchlistItems">
+      <!-- Injected by JavaScript -->
+    </div>
+  </div>
+
+  <!-- General Information & Community Modal -->
+  <div class="player-modal" id="infoModal">
+    <div class="player-overlay" id="infoOverlay"></div>
+    <div class="player-container info-container">
+      <div class="player-header">
+        <h3 id="infoModalTitle" style="color: #fff; font-family: 'Space Grotesk', sans-serif;">Information</h3>
+        <button class="close-modal-btn" id="closeInfoModalBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div id="infoModalBody" class="info-modal-body">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Estimated Airing Schedule Section -->
+  <section class="schedule-section" id="scheduleSection">
+    <div class="schedule-container">
+      <div class="schedule-header">
+        <div class="schedule-title-area">
+          <h2 class="section-title"><i data-lucide="calendar" class="title-icon"></i> Estimated Schedule</h2>
+          <span class="schedule-tz-badge" id="scheduleTzBadge"><i data-lucide="clock"></i> JST (Tokyo)</span>
+        </div>
+        <div class="schedule-days-tabs" id="scheduleDaysTabs">
+          <button class="schedule-day-btn" data-day="monday">Mon</button>
+          <button class="schedule-day-btn" data-day="tuesday">Tue</button>
+          <button class="schedule-day-btn" data-day="wednesday">Wed</button>
+          <button class="schedule-day-btn" data-day="thursday">Thu</button>
+          <button class="schedule-day-btn" data-day="friday">Fri</button>
+          <button class="schedule-day-btn" data-day="saturday">Sat</button>
+          <button class="schedule-day-btn" data-day="sunday">Sun</button>
+        </div>
+      </div>
+      <div class="schedule-grid" id="scheduleGrid">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <a href="/" class="brand-logo">
+          <span class="logo-hi">Hi</span><span class="logo-anime">Anime</span>
+          <span class="logo-domain">.to</span>
+        </a>
+        <p>HiAnime is a free anime streaming website with zero ads. Watch high quality anime online without registration.</p>
+        <p class="copyright">&copy; 2026 HiAnime Localhost. Designed with HiAnime dark-neon aesthetic.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navigation</h4>
+        <a href="#" class="footer-link" data-action="az-list">A-Z List</a>
+        <a href="#" class="footer-link" data-action="airing">Top Airing</a>
+        <a href="#" class="footer-link" data-action="popular">Most Popular</a>
+        <a href="#" class="footer-link" data-action="recent">Recently Added</a>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <a href="#" class="footer-link" data-action="tos">Terms of Service</a>
+        <a href="#" class="footer-link" data-action="dmca">DMCA Notice</a>
+        <a href="#" class="footer-link" data-action="contact">Contact Us</a>
+        <a href="#" class="footer-link" data-action="app-info">HiAnime App</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/data/anime-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1266 @@
+// HiAnime Client Application State
+let currentAnimeList = [];
+let currentSpotlights = [];
+let activeSpotlightIndex = 0;
+let spotlightInterval = null;
+let currentPlayingAnime = null;
+let currentPlayingEpisode = 1;
+let currentServer = 'vidsrc';
+let watchlist = JSON.parse(localStorage.getItem('hianime_watchlist') || '[]');
+let watchHistory = JSON.parse(localStorage.getItem('hianime_watch_history') || '[]');
+
+// DOM Elements
+const spotlightSlider = document.getElementById('spotlightSlider');
+const sliderDots = document.getElementById('sliderDots');
+const sliderPrev = document.getElementById('sliderPrev');
+const sliderNext = document.getElementById('sliderNext');
+const trendingTrack = document.getElementById('trendingTrack');
+const railPrev = document.getElementById('railPrev');
+const railNext = document.getElementById('railNext');
+const animeGrid = document.getElementById('animeGrid');
+const top10List = document.getElementById('top10List');
+const searchInput = document.getElementById('searchInput');
+const searchDropdown = document.getElementById('searchDropdown');
+const randomAnimeBtn = document.getElementById('randomAnimeBtn');
+const watchlistBtn = document.getElementById('watchlistBtn');
+const watchlistCount = document.getElementById('watchlistCount');
+const watchlistDrawer = document.getElementById('watchlistDrawer');
+const closeDrawerBtn = document.getElementById('closeDrawerBtn');
+const watchlistItems = document.getElementById('watchlistItems');
+const continueWatchingSection = document.getElementById('continueWatchingSection');
+const continueWatchingTrack = document.getElementById('continueWatchingTrack');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+// Player Modal Elements
+const playerModal = document.getElementById('playerModal');
+const playerOverlay = document.getElementById('playerOverlay');
+const lightsOffOverlay = document.getElementById('lightsOffOverlay');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const modalAnimeTitle = document.getElementById('modalAnimeTitle');
+const modalEpCrumb = document.getElementById('modalEpCrumb');
+const animeEmbedPlayer = document.getElementById('animeEmbedPlayer');
+const animeVideoPlayer = document.getElementById('animeVideoPlayer');
+const modalScore = document.getElementById('modalScore');
+const modalType = document.getElementById('modalType');
+const modalStudio = document.getElementById('modalStudio');
+const modalSeason = document.getElementById('modalSeason');
+const modalSynopsis = document.getElementById('modalSynopsis');
+const modalBookmarkBtn = document.getElementById('modalBookmarkBtn');
+const episodesList = document.getElementById('episodesList');
+const epSearchInput = document.getElementById('epSearchInput');
+const autoNextCheck = document.getElementById('autoNextCheck');
+const prevEpBtn = document.getElementById('prevEpBtn');
+const nextEpBtn = document.getElementById('nextEpBtn');
+const lightsOffBtn = document.getElementById('lightsOffBtn');
+const theaterModeBtn = document.getElementById('theaterModeBtn');
+
+// Schedule Elements
+const scheduleGrid = document.getElementById('scheduleGrid');
+const scheduleDaysTabs = document.getElementById('scheduleDaysTabs');
+
+// Initialize App
+document.addEventListener('DOMContentLoaded', async () => {
+  updateWatchlistBadge();
+  renderContinueWatching();
+  await loadData();
+  await initSchedule();
+  setupEventListeners();
+  if (window.lucide) lucide.createIcons();
+});
+
+// Fetch Data from Backend API (with fallback to local script dataset)
+async function loadData() {
+  try {
+    const [animeRes, spotlightRes, top10Res] = await Promise.all([
+      fetch('/api/anime').then(r => r.json()).catch(() => null),
+      fetch('/api/anime/spotlight').then(r => r.json()).catch(() => null),
+      fetch('/api/anime/top10').then(r => r.json()).catch(() => null)
+    ]);
+
+    if (animeRes && animeRes.success) {
+      currentAnimeList = animeRes.data;
+    } else if (typeof animeDatabase !== 'undefined') {
+      currentAnimeList = animeDatabase;
+    }
+
+    if (spotlightRes && spotlightRes.success) {
+      currentSpotlights = spotlightRes.data;
+    } else {
+      currentSpotlights = currentAnimeList.filter(a => a.spotlight);
+    }
+
+    const top10Data = (top10Res && top10Res.success) ? top10Res.data : [...currentAnimeList].sort((a, b) => b.rating - a.rating).slice(0, 10);
+
+    renderSpotlight(currentSpotlights);
+    renderTrendingRail(currentAnimeList);
+    renderAnimeGrid(currentAnimeList);
+    renderTop10(top10Data);
+    if (window.lucide) lucide.createIcons();
+  } catch (err) {
+    console.warn('API fetch error, using local fallback:', err);
+    if (typeof animeDatabase !== 'undefined') {
+      currentAnimeList = animeDatabase;
+      currentSpotlights = animeDatabase.filter(a => a.spotlight);
+      renderSpotlight(currentSpotlights);
+      renderTrendingRail(currentAnimeList);
+      renderAnimeGrid(currentAnimeList);
+      renderTop10(currentAnimeList.slice(0, 10));
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+}
+
+// Render Spotlight Hero Slider
+function renderSpotlight(spotlights) {
+  if (!spotlights || spotlights.length === 0) return;
+  spotlightSlider.innerHTML = '';
+  sliderDots.innerHTML = '';
+
+  spotlights.forEach((anime, index) => {
+    const slide = document.createElement('div');
+    slide.className = `spotlight-slide ${index === 0 ? 'active' : ''}`;
+    slide.style.backgroundImage = `url('${anime.banner || anime.poster}')`;
+
+    slide.innerHTML = `
+      <div class="slide-overlay">
+        <div class="slide-content">
+          <div class="spotlight-rank">#${index + 1} Spotlight</div>
+          <h1 class="slide-title">${anime.title}</h1>
+          <div class="slide-badges">
+            <span class="badge-quality">${anime.quality || 'HD'}</span>
+            <span class="badge-sub"><i data-lucide="captions"></i> SUB ${anime.subEpisodes || 12}</span>
+            <span class="badge-dub"><i data-lucide="mic"></i> DUB ${anime.dubEpisodes || 12}</span>
+            <span class="badge-meta">${anime.type || 'TV'}</span>
+            <span class="badge-meta">${anime.duration || '24m'}</span>
+            <span class="badge-meta">${anime.season || '2024'}</span>
+          </div>
+          <p class="slide-synopsis">${anime.synopsis}</p>
+          <div class="slide-actions">
+            <button class="btn-primary" onclick="openWatchModal('${anime.id}', 1)">
+              <i data-lucide="play-circle"></i> Watch Now
+            </button>
+            <button class="btn-secondary" onclick="toggleWatchlist('${anime.id}')">
+              <i data-lucide="${isInWatchlist(anime.id) ? 'check' : 'bookmark-plus'}"></i>
+              ${isInWatchlist(anime.id) ? 'Saved' : 'Add to List'}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    spotlightSlider.appendChild(slide);
+
+    // Slider Dot
+    const dot = document.createElement('div');
+    dot.className = `slider-dot ${index === 0 ? 'active' : ''}`;
+    dot.addEventListener('click', () => goToSlide(index));
+    sliderDots.appendChild(dot);
+  });
+
+  startSpotlightAutoPlay();
+}
+
+function goToSlide(index) {
+  const slides = document.querySelectorAll('.spotlight-slide');
+  const dots = document.querySelectorAll('.slider-dot');
+  if (!slides.length) return;
+
+  slides[activeSpotlightIndex].classList.remove('active');
+  dots[activeSpotlightIndex].classList.remove('active');
+
+  activeSpotlightIndex = (index + slides.length) % slides.length;
+
+  slides[activeSpotlightIndex].classList.add('active');
+  dots[activeSpotlightIndex].classList.add('active');
+}
+
+function startSpotlightAutoPlay() {
+  if (spotlightInterval) clearInterval(spotlightInterval);
+  spotlightInterval = setInterval(() => {
+    goToSlide(activeSpotlightIndex + 1);
+  }, 6000);
+}
+
+// Render Trending Horizontal Rail
+function renderTrendingRail(animeList) {
+  trendingTrack.innerHTML = '';
+  animeList.forEach((anime, index) => {
+    const card = document.createElement('div');
+    card.className = 'trending-rail-card';
+    card.onclick = () => openWatchModal(anime.id, 1);
+
+    card.innerHTML = `
+      <div class="rail-poster">
+        <img src="${anime.poster}" alt="${anime.title}" loading="lazy">
+        <div class="rail-badges">
+          <span class="badge-sub">SUB</span>
+          <span class="badge-dub">DUB</span>
+        </div>
+        <div class="rail-rank-number">${index + 1}</div>
+      </div>
+      <div class="rail-info">
+        <h4 title="${anime.title}">${anime.title}</h4>
+        <div class="rail-meta">
+          <span>${anime.type || 'TV'}</span>
+          <span>★ ${anime.rating || '9.0'}</span>
+        </div>
+      </div>
+    `;
+    trendingTrack.appendChild(card);
+  });
+}
+
+// Render Main Anime Grid
+function renderAnimeGrid(list) {
+  animeGrid.innerHTML = '';
+  if (!list || list.length === 0) {
+    animeGrid.innerHTML = `<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--text-muted);">No anime found matching your criteria.</div>`;
+    return;
+  }
+
+  list.forEach(anime => {
+    const card = document.createElement('div');
+    card.className = 'anime-card';
+    card.onclick = () => openWatchModal(anime.id, 1);
+
+    card.innerHTML = `
+      <div class="card-poster">
+        <img src="${anime.poster}" alt="${anime.title}" loading="lazy">
+        <div class="card-badges">
+          <span class="badge-sub">SUB ${anime.subEpisodes || 12}</span>
+          <span class="badge-dub">DUB ${anime.dubEpisodes || 12}</span>
+        </div>
+        <div class="card-score">★ ${anime.rating}</div>
+        <div class="card-play-overlay">
+          <div class="play-circle">
+            <i data-lucide="play" style="fill: #fff;"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h4 class="card-title" title="${anime.title}">${anime.title}</h4>
+        <div class="card-meta">
+          <span>${anime.type || 'TV'} • ${anime.duration || '24m'}</span>
+          <span>${anime.season || '2024'}</span>
+        </div>
+      </div>
+    `;
+    animeGrid.appendChild(card);
+  });
+}
+
+// Render Top 10 Sidebar Leaderboard
+function renderTop10(topList) {
+  top10List.innerHTML = '';
+  topList.forEach((anime, index) => {
+    const item = document.createElement('div');
+    item.className = 'top-10-item';
+    item.onclick = () => openWatchModal(anime.id, 1);
+
+    item.innerHTML = `
+      <div class="top-10-rank">0${index + 1}</div>
+      <img src="${anime.poster}" alt="${anime.title}" class="top-10-poster" loading="lazy">
+      <div class="top-10-info">
+        <h4 title="${anime.title}">${anime.title}</h4>
+        <div class="top-10-meta">
+          <span>★ ${anime.rating}</span>
+          <span>${anime.type || 'TV'}</span>
+          <span class="badge-sub" style="font-size:0.65rem;">SUB ${anime.subEpisodes || 12}</span>
+        </div>
+      </div>
+    `;
+    top10List.appendChild(item);
+  });
+}
+
+let hlsPlayer = null;
+
+function getServerStreamUrl(serverName, anime, epNumber) {
+  const mal = anime.malId || '52299';
+  const ep = (anime.episodes && anime.episodes.find(e => e.number === epNumber)) || { number: epNumber };
+  switch (serverName) {
+    case 'vidsrc':
+      return { url: ep.embedUrl || `https://vidsrc.pm/embed/anime/${mal}/${epNumber}`, isEmbed: true };
+    case 'multiembed':
+      return { url: ep.megaCloudUrl || `https://multiembed.mov/?video_id=${mal}&ep=${epNumber}&an=1`, isEmbed: true };
+    case 'twoembed':
+      return { url: ep.twoEmbedUrl || `https://www.2embed.cc/embed/anime/${mal}/${epNumber}`, isEmbed: true };
+    case 'vidsrc-classic':
+      return { url: ep.vidsrcClassicUrl || `https://vidsrc.me/embed/anime?mal=${mal}&ep=${epNumber}`, isEmbed: true };
+    case 'streamwish':
+      return { url: ep.megaCloudUrl || `https://multiembed.mov/?video_id=${mal}&ep=${epNumber}&an=1`, isEmbed: true };
+    default:
+      return { url: ep.embedUrl || `https://vidsrc.pm/embed/anime/${mal}/${epNumber}`, isEmbed: true };
+  }
+}
+
+function loadActivePlayer(sourceUrl, isEmbed = true) {
+  if (isEmbed) {
+    if (animeVideoPlayer) {
+      animeVideoPlayer.pause();
+      animeVideoPlayer.src = '';
+      animeVideoPlayer.style.display = 'none';
+    }
+    if (hlsPlayer) {
+      hlsPlayer.destroy();
+      hlsPlayer = null;
+    }
+    if (animeEmbedPlayer) {
+      animeEmbedPlayer.style.display = 'block';
+      if (animeEmbedPlayer.src !== sourceUrl) {
+        animeEmbedPlayer.src = sourceUrl;
+      }
+    }
+  } else {
+    if (animeEmbedPlayer) {
+      animeEmbedPlayer.src = 'about:blank';
+      animeEmbedPlayer.style.display = 'none';
+    }
+    if (animeVideoPlayer) {
+      animeVideoPlayer.style.display = 'block';
+      loadVideoSource(sourceUrl);
+    }
+  }
+}
+
+function loadVideoSource(url, poster) {
+  if (poster && animeVideoPlayer) animeVideoPlayer.poster = poster;
+  if (!animeVideoPlayer) return;
+  if (url && url.includes('.m3u8')) {
+    if (window.Hls && Hls.isSupported()) {
+      if (hlsPlayer) hlsPlayer.destroy();
+      hlsPlayer = new Hls();
+      hlsPlayer.loadSource(url);
+      hlsPlayer.attachMedia(animeVideoPlayer);
+      hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+        animeVideoPlayer.play().catch(() => {});
+      });
+    } else if (animeVideoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+      animeVideoPlayer.src = url;
+      animeVideoPlayer.play().catch(() => {});
+    }
+  } else {
+    if (hlsPlayer) {
+      hlsPlayer.destroy();
+      hlsPlayer = null;
+    }
+    animeVideoPlayer.src = url;
+    animeVideoPlayer.play().catch(() => {});
+  }
+}
+
+// Continue Watching History Tracker
+function saveWatchProgress(anime, episodeNumber) {
+  if (!anime) return;
+  const epNum = parseInt(episodeNumber) || 1;
+  const totalEps = anime.subEpisodes || (anime.episodes ? anime.episodes.length : 12);
+  const record = {
+    animeId: anime.id,
+    title: anime.title,
+    cover: anime.poster || anime.banner,
+    episodeNumber: epNum,
+    totalEpisodes: totalEps,
+    timestamp: Date.now()
+  };
+
+  // Deduplicate: filter out existing entry for this anime
+  watchHistory = watchHistory.filter(h => h.animeId !== anime.id);
+  // Add to beginning of array, keeping up to 12 recent items
+  watchHistory.unshift(record);
+  if (watchHistory.length > 12) watchHistory.length = 12;
+
+  localStorage.setItem('hianime_watch_history', JSON.stringify(watchHistory));
+  renderContinueWatching();
+}
+
+function renderContinueWatching() {
+  if (!continueWatchingSection || !continueWatchingTrack) return;
+  if (!watchHistory || watchHistory.length === 0) {
+    continueWatchingSection.style.display = 'none';
+    continueWatchingTrack.innerHTML = '';
+    return;
+  }
+
+  continueWatchingSection.style.display = 'block';
+  continueWatchingTrack.innerHTML = watchHistory.map(item => {
+    const percent = Math.min(100, Math.round((item.episodeNumber / (item.totalEpisodes || 12)) * 100));
+    return `
+      <div class="continue-card" onclick="openWatchModal('${item.animeId}', ${item.episodeNumber})">
+        <button class="continue-card-remove" onclick="event.stopPropagation(); removeWatchHistory('${item.animeId}')" title="Remove from History">✕</button>
+        <div class="continue-card-thumb">
+          <img src="${item.cover}" alt="${item.title}" loading="lazy">
+          <div class="continue-play-overlay">
+            <i data-lucide="play-circle"></i>
+          </div>
+          <div class="continue-progress-bar" style="width: ${percent}%;"></div>
+        </div>
+        <div class="continue-card-info">
+          <div class="continue-card-title" title="${item.title}">${item.title}</div>
+          <div class="continue-card-ep">Episode ${item.episodeNumber} / ${item.totalEpisodes}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function removeWatchHistory(animeId) {
+  watchHistory = watchHistory.filter(h => h.animeId !== animeId);
+  localStorage.setItem('hianime_watch_history', JSON.stringify(watchHistory));
+  renderContinueWatching();
+}
+
+function clearAllWatchHistory() {
+  watchHistory = [];
+  localStorage.removeItem('hianime_watch_history');
+  renderContinueWatching();
+}
+
+// Lights Off & Theater Mode Controls
+function toggleLightsOff(forceState) {
+  if (!playerModal) return;
+  const shouldBeOn = typeof forceState === 'boolean' ? forceState : !playerModal.classList.contains('lights-off');
+  if (shouldBeOn) {
+    playerModal.classList.add('lights-off');
+    if (lightsOffBtn) lightsOffBtn.classList.add('active');
+  } else {
+    playerModal.classList.remove('lights-off');
+    if (lightsOffBtn) lightsOffBtn.classList.remove('active');
+  }
+}
+
+function toggleTheaterMode(forceState) {
+  if (!playerModal) return;
+  const shouldBeOn = typeof forceState === 'boolean' ? forceState : !playerModal.classList.contains('theater-mode');
+  if (shouldBeOn) {
+    playerModal.classList.add('theater-mode');
+    if (theaterModeBtn) theaterModeBtn.classList.add('active');
+  } else {
+    playerModal.classList.remove('theater-mode');
+    if (theaterModeBtn) theaterModeBtn.classList.remove('active');
+  }
+}
+
+// Open Watch Modal & Video Player
+async function openWatchModal(animeId, episodeNum = 1) {
+  const anime = currentAnimeList.find(a => a.id === animeId);
+  if (!anime) return;
+
+  currentPlayingAnime = anime;
+  currentPlayingEpisode = episodeNum;
+
+  modalAnimeTitle.textContent = anime.title;
+  const ep = (anime.episodes && anime.episodes.find(e => e.number === episodeNum)) || 
+    (anime.episodes && anime.episodes[0]) || 
+    { number: episodeNum, title: `Episode ${episodeNum}` };
+
+  modalEpCrumb.textContent = `Episode ${ep.number} - ${ep.title}`;
+  modalScore.textContent = `★ ${anime.rating}`;
+  modalType.textContent = anime.type || 'TV Series';
+  modalStudio.textContent = anime.studio || 'Studio';
+  modalSeason.textContent = anime.season || '2024';
+  modalSynopsis.textContent = anime.synopsis;
+
+  // Track progress in Continue Watching
+  saveWatchProgress(anime, episodeNum);
+
+  // Resolve stream using active server
+  const streamInfo = getServerStreamUrl(currentServer, anime, episodeNum);
+  loadActivePlayer(streamInfo.url, streamInfo.isEmbed);
+
+  // Update Bookmark Button in Modal
+  updateModalBookmarkBtn(anime.id);
+
+  // Render Episode List
+  renderEpisodesSidebar(anime, episodeNum);
+
+  playerModal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderEpisodesSidebar(anime, activeNum) {
+  episodesList.innerHTML = '';
+  const episodes = (anime.episodes && anime.episodes.length > 0) ? anime.episodes : [
+    { number: 1, title: 'Episode 1', duration: '24:00' }
+  ];
+
+  episodes.forEach(ep => {
+    const row = document.createElement('div');
+    row.className = `episode-row ${ep.number === activeNum ? 'active' : ''}`;
+    row.onclick = () => openWatchModal(anime.id, ep.number);
+
+    row.innerHTML = `
+      <div class="ep-num">${ep.number}</div>
+      <div class="ep-name" title="${ep.title}">${ep.title}</div>
+      <div class="ep-time">${ep.duration || '24m'}</div>
+    `;
+    episodesList.appendChild(row);
+  });
+}
+
+// Close Watch Modal
+function closeWatchModal() {
+  playerModal.classList.remove('active');
+  toggleLightsOff(false);
+  if (animeEmbedPlayer) {
+    animeEmbedPlayer.src = 'about:blank';
+  }
+  if (animeVideoPlayer) {
+    animeVideoPlayer.pause();
+    animeVideoPlayer.src = '';
+  }
+  if (hlsPlayer) {
+    hlsPlayer.destroy();
+    hlsPlayer = null;
+  }
+  document.body.style.overflow = '';
+}
+
+// Watchlist Management
+function isInWatchlist(animeId) {
+  return watchlist.some(item => item.id === animeId);
+}
+
+function toggleWatchlist(animeId) {
+  const anime = currentAnimeList.find(a => a.id === animeId);
+  if (!anime) return;
+
+  const idx = watchlist.findIndex(item => item.id === animeId);
+  if (idx >= 0) {
+    watchlist.splice(idx, 1);
+  } else {
+    watchlist.push({ id: anime.id, title: anime.title, poster: anime.poster, rating: anime.rating });
+  }
+
+  localStorage.setItem('hianime_watchlist', JSON.stringify(watchlist));
+  updateWatchlistBadge();
+  updateModalBookmarkBtn(animeId);
+  renderWatchlistDrawer();
+}
+
+function updateWatchlistBadge() {
+  watchlistCount.textContent = watchlist.length;
+}
+
+function updateModalBookmarkBtn(animeId) {
+  if (isInWatchlist(animeId)) {
+    modalBookmarkBtn.innerHTML = `<i data-lucide="check"></i> In Watchlist`;
+    modalBookmarkBtn.style.background = 'var(--accent-green)';
+  } else {
+    modalBookmarkBtn.innerHTML = `<i data-lucide="bookmark-plus"></i> Add to Watchlist`;
+    modalBookmarkBtn.style.background = 'var(--accent-pink)';
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderWatchlistDrawer() {
+  watchlistItems.innerHTML = '';
+  if (watchlist.length === 0) {
+    watchlistItems.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 30px;">Your watchlist is currently empty.</div>`;
+    return;
+  }
+
+  watchlist.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'watchlist-card';
+    card.innerHTML = `
+      <img src="${item.poster}" alt="${item.title}">
+      <div class="watchlist-card-info">
+        <h4>${item.title}</h4>
+        <span style="font-size: 0.75rem; color: var(--accent-gold);">★ ${item.rating}</span>
+        <button onclick="openWatchModal('${item.id}', 1); watchlistDrawer.classList.remove('open');" style="display:block; margin-top:4px; font-size:0.75rem; color:var(--accent-cyan); font-weight:700;">Watch Now</button>
+      </div>
+      <button class="watchlist-del-btn" onclick="toggleWatchlist('${item.id}')" title="Remove">
+        <i data-lucide="trash-2"></i>
+      </button>
+    `;
+    watchlistItems.appendChild(card);
+  });
+  if (window.lucide) lucide.createIcons();
+}
+
+// Live Search Handling
+searchInput.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  if (query.length < 1) {
+    searchDropdown.classList.remove('show');
+    return;
+  }
+
+  const matches = currentAnimeList.filter(a => 
+    a.title.toLowerCase().includes(query) || 
+    (a.romajiTitle && a.romajiTitle.toLowerCase().includes(query)) ||
+    a.genres.some(g => g.toLowerCase().includes(query))
+  ).slice(0, 5);
+
+  if (matches.length === 0) {
+    searchDropdown.innerHTML = `<div style="padding: 12px; color: var(--text-muted); font-size:0.85rem;">No anime found</div>`;
+  } else {
+    searchDropdown.innerHTML = matches.map(anime => `
+      <div class="search-item" onclick="openWatchModal('${anime.id}', 1); searchDropdown.classList.remove('show');">
+        <img src="${anime.poster}" alt="${anime.title}">
+        <div class="search-item-info">
+          <h4>${anime.title}</h4>
+          <div class="search-item-meta">
+            <span>★ ${anime.rating}</span>
+            <span>${anime.type || 'TV'}</span>
+            <span>${anime.genres.slice(0, 2).join(', ')}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+  searchDropdown.classList.add('show');
+});
+
+// Search on Enter Key
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const query = searchInput.value.toLowerCase().trim();
+    searchDropdown.classList.remove('show');
+    if (!query) {
+      filterAnimeGrid('all', 'All');
+      return;
+    }
+    const matches = currentAnimeList.filter(a => 
+      a.title.toLowerCase().includes(query) || 
+      (a.romajiTitle && a.romajiTitle.toLowerCase().includes(query)) ||
+      a.genres.some(g => g.toLowerCase().includes(query))
+    );
+    renderAnimeGrid(matches);
+    window.scrollTo({ top: animeGrid.offsetTop - 120, behavior: 'smooth' });
+  }
+});
+
+// Hide dropdown on click outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.nav-search')) {
+    searchDropdown.classList.remove('show');
+  }
+});
+
+// Event Listeners Setup
+function setupEventListeners() {
+  // Slider Arrows
+  sliderPrev.addEventListener('click', () => {
+    goToSlide(activeSpotlightIndex - 1);
+    startSpotlightAutoPlay();
+  });
+  sliderNext.addEventListener('click', () => {
+    goToSlide(activeSpotlightIndex + 1);
+    startSpotlightAutoPlay();
+  });
+
+  // Trending Rail Horizontal Scroll
+  railPrev.addEventListener('click', () => {
+    trendingTrack.parentElement.scrollBy({ left: -420, behavior: 'smooth' });
+  });
+  railNext.addEventListener('click', () => {
+    trendingTrack.parentElement.scrollBy({ left: 420, behavior: 'smooth' });
+  });
+
+  // Category Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      const tab = e.target.dataset.tab;
+      filterAnimeGrid(tab, getActiveGenre());
+    });
+  });
+
+  // Genre Pills
+  document.querySelectorAll('.genre-pill').forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      document.querySelectorAll('.genre-pill').forEach(p => p.classList.remove('active'));
+      e.target.classList.add('active');
+      const genre = e.target.dataset.genre;
+      filterAnimeGrid(getActiveTab(), genre);
+    });
+  });
+
+  // Sidebar Genre Tags
+  document.querySelectorAll('.genre-tags-cloud a').forEach(tag => {
+    tag.addEventListener('click', (e) => {
+      e.preventDefault();
+      const genre = e.target.dataset.genre;
+      // Set active genre pill
+      document.querySelectorAll('.genre-pill').forEach(p => {
+        if (p.dataset.genre === genre) p.classList.add('active');
+        else p.classList.remove('active');
+      });
+      filterAnimeGrid('all', genre);
+      window.scrollTo({ top: animeGrid.offsetTop - 120, behavior: 'smooth' });
+    });
+  });
+
+  // Sub Navigation Links Filter
+  document.querySelectorAll('.sub-nav-inner a').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.sub-nav-inner a').forEach(a => a.classList.remove('active'));
+      link.classList.add('active');
+      const tab = link.dataset.tab;
+      const filter = link.dataset.filter;
+
+      if (tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          if (b.dataset.tab === tab) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+        filterAnimeGrid(tab, 'All');
+      } else if (filter) {
+        if (filter === 'all') {
+          filterAnimeGrid('all', 'All');
+        } else if (filter === 'TV Series' || filter === 'Movie') {
+          const filtered = currentAnimeList.filter(a => a.type === filter);
+          renderAnimeGrid(filtered.length > 0 ? filtered : currentAnimeList);
+        } else if (filter === 'dub') {
+          const filtered = currentAnimeList.filter(a => a.dubEpisodes && a.dubEpisodes > 0);
+          renderAnimeGrid(filtered);
+        }
+      }
+      window.scrollTo({ top: animeGrid.offsetTop - 120, behavior: 'smooth' });
+    });
+  });
+
+  // Mobile Menu Toggle
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const subNav = document.querySelector('.sub-nav');
+  if (mobileMenuBtn && subNav) {
+    mobileMenuBtn.addEventListener('click', () => {
+      const isVisible = subNav.style.display === 'block';
+      subNav.style.display = isVisible ? 'none' : 'block';
+    });
+  }
+
+  // Advanced Filter Panel Controls
+  const filterBtn = document.getElementById('filterBtn');
+  const advancedFilterPanel = document.getElementById('advancedFilterPanel');
+  const applyAdvFilterBtn = document.getElementById('applyAdvFilterBtn');
+  const resetAdvFilterBtn = document.getElementById('resetAdvFilterBtn');
+  const advTypeFilter = document.getElementById('advTypeFilter');
+  const advSortFilter = document.getElementById('advSortFilter');
+  const advStatusFilter = document.getElementById('advStatusFilter');
+
+  if (filterBtn && advancedFilterPanel) {
+    filterBtn.addEventListener('click', () => {
+      const isHidden = advancedFilterPanel.style.display === 'none';
+      advancedFilterPanel.style.display = isHidden ? 'block' : 'none';
+    });
+  }
+
+  if (applyAdvFilterBtn) {
+    applyAdvFilterBtn.addEventListener('click', () => {
+      let list = [...currentAnimeList];
+      const type = advTypeFilter.value;
+      const sort = advSortFilter.value;
+      const status = advStatusFilter.value;
+
+      if (type !== 'all') {
+        list = list.filter(a => a.type === type);
+      }
+      if (status !== 'all') {
+        list = list.filter(a => a.status === status);
+      }
+      if (sort === 'rating') {
+        list.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+      } else if (sort === 'name') {
+        list.sort((a, b) => a.title.localeCompare(b.title));
+      } else if (sort === 'episodes') {
+        list.sort((a, b) => (b.subEpisodes || 0) - (a.subEpisodes || 0));
+      }
+
+      renderAnimeGrid(list);
+      window.scrollTo({ top: animeGrid.offsetTop - 120, behavior: 'smooth' });
+    });
+  }
+
+  if (resetAdvFilterBtn) {
+    resetAdvFilterBtn.addEventListener('click', () => {
+      advTypeFilter.value = 'all';
+      advSortFilter.value = 'default';
+      advStatusFilter.value = 'all';
+      filterAnimeGrid('all', 'All');
+    });
+  }
+
+  // Top 10 Sidebar Tabs (Today, Week, Month)
+  document.querySelectorAll('.rank-filter-tabs span').forEach((tab, index) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.rank-filter-tabs span').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      let sorted = [...top10Data];
+      if (index === 0) {
+        sorted.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+      } else if (index === 1) {
+        sorted.sort((a, b) => (b.subEpisodes || 0) - (a.subEpisodes || 0));
+      } else {
+        sorted.sort((a, b) => a.title.localeCompare(b.title));
+      }
+      renderTop10(sorted);
+    });
+  });
+
+  // Notifications Popover
+  const notifyBtn = document.getElementById('notifyBtn');
+  const notificationsPopover = document.getElementById('notificationsPopover');
+  const clearNotifyBtn = document.getElementById('clearNotifyBtn');
+  const notifyList = document.getElementById('notifyList');
+
+  if (notifyBtn && notificationsPopover) {
+    notifyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const userPop = document.getElementById('userPopover');
+      if (userPop) userPop.classList.remove('show');
+      notificationsPopover.classList.toggle('show');
+    });
+  }
+
+  if (clearNotifyBtn && notifyList) {
+    clearNotifyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      notifyList.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">No new notifications</div>`;
+      const dot = notifyBtn.querySelector('.dot');
+      if (dot) dot.style.display = 'none';
+    });
+  }
+
+  document.querySelectorAll('.notify-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const animeId = item.dataset.anime;
+      const ep = parseInt(item.dataset.ep) || 1;
+      if (notificationsPopover) notificationsPopover.classList.remove('show');
+      openWatchModal(animeId, ep);
+    });
+  });
+
+  // User Profile Popover
+  const userAvatarBtn = document.getElementById('userAvatarBtn');
+  const userPopover = document.getElementById('userPopover');
+  const profileWatchlistLink = document.getElementById('profileWatchlistLink');
+  const profileRandomLink = document.getElementById('profileRandomLink');
+  const profileThemeToggle = document.getElementById('profileThemeToggle');
+  const userWatchlistCount = document.getElementById('userWatchlistCount');
+
+  if (userAvatarBtn && userPopover) {
+    userAvatarBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (notificationsPopover) notificationsPopover.classList.remove('show');
+      if (userWatchlistCount) userWatchlistCount.textContent = watchlist.length;
+      userPopover.classList.toggle('show');
+    });
+  }
+
+  if (profileWatchlistLink) {
+    profileWatchlistLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      userPopover.classList.remove('show');
+      renderWatchlistDrawer();
+      watchlistDrawer.classList.add('open');
+    });
+  }
+
+  if (profileRandomLink) {
+    profileRandomLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      userPopover.classList.remove('show');
+      randomAnimeBtn.click();
+    });
+  }
+
+  if (profileThemeToggle) {
+    profileThemeToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.body.classList.toggle('high-contrast');
+      const isHigh = document.body.classList.contains('high-contrast');
+      profileThemeToggle.innerHTML = `<i data-lucide="${isHigh ? 'sun' : 'moon'}"></i> ${isHigh ? 'Default Dark Mode' : 'High Contrast Mode'}`;
+      if (window.lucide) lucide.createIcons();
+    });
+  }
+
+  // Episode Navigation: Prev & Next Buttons
+  const prevEpBtn = document.getElementById('prevEpBtn');
+  const nextEpBtn = document.getElementById('nextEpBtn');
+
+  if (prevEpBtn) {
+    prevEpBtn.addEventListener('click', () => {
+      if (currentPlayingAnime && currentPlayingEpisode > 1) {
+        openWatchModal(currentPlayingAnime.id, currentPlayingEpisode - 1);
+      }
+    });
+  }
+
+  if (nextEpBtn) {
+    nextEpBtn.addEventListener('click', () => {
+      if (currentPlayingAnime && currentPlayingAnime.episodes) {
+        const next = currentPlayingAnime.episodes.find(e => e.number === currentPlayingEpisode + 1);
+        if (next) {
+          openWatchModal(currentPlayingAnime.id, next.number);
+        }
+      }
+    });
+  }
+
+  // Clear Watchlist Button
+  const clearWatchlistBtn = document.getElementById('clearWatchlistBtn');
+  if (clearWatchlistBtn) {
+    clearWatchlistBtn.addEventListener('click', () => {
+      if (watchlist.length === 0) return;
+      watchlist = [];
+      localStorage.removeItem('hianime_watchlist');
+      updateWatchlistBadge();
+      renderWatchlistDrawer();
+    });
+  }
+
+  // Information & Legal Modal Handling
+  const infoModal = document.getElementById('infoModal');
+  const infoOverlay = document.getElementById('infoOverlay');
+  const closeInfoModalBtn = document.getElementById('closeInfoModalBtn');
+  const infoModalTitle = document.getElementById('infoModalTitle');
+  const infoModalBody = document.getElementById('infoModalBody');
+
+  function openInfoModal(title, htmlContent) {
+    infoModalTitle.textContent = title;
+    infoModalBody.innerHTML = htmlContent;
+    infoModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function closeInfoModal() {
+    infoModal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  if (closeInfoModalBtn) closeInfoModalBtn.addEventListener('click', closeInfoModal);
+  if (infoOverlay) infoOverlay.addEventListener('click', closeInfoModal);
+
+  // Top Bar Community Links
+  document.querySelectorAll('.top-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const action = link.dataset.action;
+      if (action === 'discord') {
+        openInfoModal('HiAnime Discord Community', `
+          <p>Join over 150,000 anime fans on our official Discord server!</p>
+          <p><strong>Channels:</strong> #episode-releases, #general-chat, #anime-memes, #server-status</p>
+          <p><a href="https://discord.gg" target="_blank" style="color:var(--accent-pink); font-weight:700;">Click here to open Discord &rarr;</a></p>
+        `);
+      } else if (action === 'telegram') {
+        openInfoModal('HiAnime Telegram Channel', `
+          <p>Get instant push notifications whenever a new episode drops!</p>
+          <p><strong>Broadcast Channel:</strong> @HiAnimeOfficial</p>
+          <p><a href="https://t.me" target="_blank" style="color:var(--accent-cyan); font-weight:700;">Click here to join Telegram &rarr;</a></p>
+        `);
+      } else if (action === 'reddit') {
+        openInfoModal('HiAnime Reddit Community', `
+          <p>Discuss anime theory, episode reactions, and recommendations on Reddit!</p>
+          <p><strong>Subreddit:</strong> r/HiAnimeLocal</p>
+          <p><a href="https://reddit.com" target="_blank" style="color:var(--accent-orange); font-weight:700;">Click here to visit Reddit &rarr;</a></p>
+        `);
+      }
+    });
+  });
+
+  // Footer Links
+  document.querySelectorAll('.footer-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const action = link.dataset.action;
+      if (action === 'az-list') {
+        const sorted = [...currentAnimeList].sort((a, b) => a.title.localeCompare(b.title));
+        renderAnimeGrid(sorted);
+        window.scrollTo({ top: animeGrid.offsetTop - 120, behavior: 'smooth' });
+      } else if (action === 'airing') {
+        filterAnimeGrid('airing', 'All');
+        window.scrollTo({ top: animeGrid.offsetTop - 120, behavior: 'smooth' });
+      } else if (action === 'popular') {
+        filterAnimeGrid('popular', 'All');
+        window.scrollTo({ top: animeGrid.offsetTop - 120, behavior: 'smooth' });
+      } else if (action === 'recent') {
+        const recent = [...currentAnimeList].reverse();
+        renderAnimeGrid(recent);
+        window.scrollTo({ top: animeGrid.offsetTop - 120, behavior: 'smooth' });
+      } else if (action === 'tos') {
+        openInfoModal('Terms of Service', `
+          <h4>1. Acceptance of Terms</h4>
+          <p>HiAnime Localhost is a private local streaming client interface designed for personal educational research and local network streaming testing.</p>
+          <h4>2. Disclaimer</h4>
+          <p>This software does not store, host, or upload video files onto this server. Video playback is rendered via external streaming endpoints or local bridges.</p>
+        `);
+      } else if (action === 'dmca') {
+        openInfoModal('DMCA & Copyright Policy', `
+          <h4>Digital Millennium Copyright Act Notice</h4>
+          <p>HiAnime Localhost respects the intellectual property rights of creators and copyright owners. This website serves as an aggregator interface and client gateway for personal educational use.</p>
+          <p>No video files are hosted on localhost. All streams are routed to third-party providers. If you have any copyright inquiries, please contact the hosting providers directly.</p>
+        `);
+      } else if (action === 'contact') {
+        openInfoModal('Contact Support', `
+          <h4>Get in Touch</h4>
+          <p>For inquiries, issues with local streaming, or gateway status, you can reach out through:</p>
+          <p><strong>Email:</strong> admin@localhost</p>
+          <p><strong>Gateway:</strong> http://localhost:3000</p>
+        `);
+      } else if (action === 'app-info') {
+        openInfoModal('HiAnime App & Gateway', `
+          <h4>HiAnime Progressive Web App</h4>
+          <p>HiAnime Localhost is fully responsive and supports PWA standalone mode on Desktop and Mobile browsers.</p>
+          <p>Enjoy 1080p stream switching, ani-cli integration, and offline-resilient local watchlists.</p>
+        `);
+      }
+    });
+  });
+
+  // Random Anime Button
+  randomAnimeBtn.addEventListener('click', () => {
+    if (currentAnimeList.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * currentAnimeList.length);
+    openWatchModal(currentAnimeList[randomIndex].id, 1);
+  });
+
+  // Watchlist Drawer
+  watchlistBtn.addEventListener('click', () => {
+    renderWatchlistDrawer();
+    watchlistDrawer.classList.add('open');
+  });
+  closeDrawerBtn.addEventListener('click', () => {
+    watchlistDrawer.classList.remove('open');
+  });
+
+  // Clear Watch History Button
+  if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener('click', () => {
+      clearAllWatchHistory();
+    });
+  }
+
+  // Player Tool Buttons (Lights Off & Theater Mode)
+  if (lightsOffBtn) {
+    lightsOffBtn.addEventListener('click', () => {
+      toggleLightsOff();
+    });
+  }
+  if (lightsOffOverlay) {
+    lightsOffOverlay.addEventListener('click', () => {
+      toggleLightsOff(false);
+    });
+  }
+  if (theaterModeBtn) {
+    theaterModeBtn.addEventListener('click', () => {
+      toggleTheaterMode();
+    });
+  }
+
+  // Auto-Next Checkbox Persistence
+  if (autoNextCheck) {
+    const autoNextSaved = localStorage.getItem('hianime_auto_next');
+    if (autoNextSaved !== null) {
+      autoNextCheck.checked = autoNextSaved === 'true';
+    }
+    autoNextCheck.addEventListener('change', () => {
+      localStorage.setItem('hianime_auto_next', autoNextCheck.checked);
+    });
+  }
+
+  // Player Modal Close
+  closeModalBtn.addEventListener('click', closeWatchModal);
+  playerOverlay.addEventListener('click', closeWatchModal);
+  modalBookmarkBtn.addEventListener('click', () => {
+    if (currentPlayingAnime) toggleWatchlist(currentPlayingAnime.id);
+  });
+
+  // Server Switcher Buttons
+  document.querySelectorAll('.server-pill').forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      document.querySelectorAll('.server-pill').forEach(p => p.classList.remove('active'));
+      const targetPill = e.target.closest('.server-pill');
+      if (!targetPill) return;
+      targetPill.classList.add('active');
+      currentServer = targetPill.dataset.server || 'vidsrc';
+
+      if (currentPlayingAnime) {
+        const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
+        loadActivePlayer(streamInfo.url, streamInfo.isEmbed);
+      }
+    });
+  });
+
+  // Video End - Auto Next Episode
+  animeVideoPlayer.addEventListener('ended', () => {
+    if (autoNextCheck.checked && currentPlayingAnime && currentPlayingAnime.episodes) {
+      const nextEp = currentPlayingAnime.episodes.find(e => e.number === currentPlayingEpisode + 1);
+      if (nextEp) {
+        openWatchModal(currentPlayingAnime.id, nextEp.number);
+      }
+    }
+  });
+
+  // Episode Search Filter
+  epSearchInput.addEventListener('input', (e) => {
+    const filter = e.target.value.toLowerCase().trim();
+    document.querySelectorAll('.episode-row').forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(filter) ? 'flex' : 'none';
+    });
+  });
+
+  // Close popovers on click outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.nav-item-wrapper')) {
+      if (notificationsPopover) notificationsPopover.classList.remove('show');
+      if (userPopover) userPopover.classList.remove('show');
+    }
+  });
+
+  // Global Keyboard Shortcuts (N, P, L, T, ESC)
+  document.addEventListener('keydown', (e) => {
+    const activeEl = document.activeElement;
+    const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+
+    if (e.key === 'Escape') {
+      if (playerModal && playerModal.classList.contains('lights-off')) {
+        toggleLightsOff(false);
+        return;
+      }
+      closeWatchModal();
+      closeInfoModal();
+      if (watchlistDrawer) watchlistDrawer.classList.remove('open');
+      if (searchDropdown) searchDropdown.classList.remove('show');
+      if (notificationsPopover) notificationsPopover.classList.remove('show');
+      if (userPopover) userPopover.classList.remove('show');
+      return;
+    }
+
+    if (!isTyping && playerModal && playerModal.classList.contains('active')) {
+      const key = e.key.toLowerCase();
+      if (key === 'n') {
+        e.preventDefault();
+        if (nextEpBtn) nextEpBtn.click();
+      } else if (key === 'p') {
+        e.preventDefault();
+        if (prevEpBtn) prevEpBtn.click();
+      } else if (key === 'l') {
+        e.preventDefault();
+        toggleLightsOff();
+      } else if (key === 't') {
+        e.preventDefault();
+        toggleTheaterMode();
+      }
+    }
+  });
+}
+
+// Live Airing Schedule Functions
+async function initSchedule() {
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayDay = days[new Date().getDay()];
+
+  const dayButtons = document.querySelectorAll('.schedule-day-btn');
+  dayButtons.forEach(btn => {
+    if (btn.dataset.day === todayDay) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+    btn.addEventListener('click', () => {
+      dayButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadSchedule(btn.dataset.day);
+    });
+  });
+
+  await loadSchedule(todayDay);
+}
+
+async function loadSchedule(day) {
+  if (!scheduleGrid) return;
+  scheduleGrid.innerHTML = `
+    <div style="grid-column: 1/-1; padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+      <i data-lucide="loader" class="spin" style="margin-bottom:8px; display:inline-block;"></i>
+      <div>Loading live broadcast schedule for ${day.toUpperCase()}...</div>
+    </div>
+  `;
+  if (window.lucide) lucide.createIcons();
+
+  try {
+    const res = await fetch(`/api/live/schedule?day=${encodeURIComponent(day)}`).then(r => r.json());
+    if (res && res.success && res.data && res.data.length > 0) {
+      renderScheduleGrid(res.data);
+    } else {
+      scheduleGrid.innerHTML = `<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--text-muted);">No broadcast schedules found for ${day}.</div>`;
+    }
+  } catch (err) {
+    console.warn('Schedule load failed:', err);
+    scheduleGrid.innerHTML = `<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--text-muted);">Failed to load schedule. Please try again.</div>`;
+  }
+}
+
+function renderScheduleGrid(items) {
+  if (!scheduleGrid) return;
+  scheduleGrid.innerHTML = items.map(item => `
+    <div class="schedule-card" onclick="handleScheduleCardClick('${item.id}', '${item.malId}', '${(item.title || '').replace(/'/g, "\\'")}')">
+      <img src="${item.image}" alt="${item.title}" class="schedule-card-thumb" loading="lazy">
+      <div class="schedule-card-info">
+        <span class="schedule-time-badge"><i data-lucide="clock" style="width:12px;height:12px;vertical-align:middle;"></i> ${item.broadcastTime}</span>
+        <h4 class="schedule-card-title" title="${item.title}">${item.title}</h4>
+        <div class="schedule-card-meta">
+          <span class="schedule-ep-pill">EP ${item.currentEp || 1}</span>
+          <span>★ ${item.score || '8.5'}</span>
+          <span>${item.type || 'TV'}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function handleScheduleCardClick(id, malId, title) {
+  const match = currentAnimeList.find(a => a.id === id || String(a.malId) === String(malId) || a.title.toLowerCase() === (title || '').toLowerCase());
+  if (match) {
+    openWatchModal(match.id, 1);
+  } else {
+    if (searchInput) {
+      searchInput.value = title;
+      const matches = currentAnimeList.filter(a => 
+        a.title.toLowerCase().includes(title.toLowerCase()) || 
+        a.genres.some(g => title.toLowerCase().includes(g.toLowerCase()))
+      );
+      renderAnimeGrid(matches.length > 0 ? matches : currentAnimeList);
+      if (animeGrid) window.scrollTo({ top: animeGrid.offsetTop - 120, behavior: 'smooth' });
+    }
+  }
+}
+
+function getActiveTab() {
+  const activeBtn = document.querySelector('.tab-btn.active');
+  return activeBtn ? activeBtn.dataset.tab : 'all';
+}
+
+function getActiveGenre() {
+  const activePill = document.querySelector('.genre-pill.active');
+  return activePill ? activePill.dataset.genre : 'All';
+}
+
+function filterAnimeGrid(tab, genre) {
+  let list = [...currentAnimeList];
+
+  if (genre && genre !== 'All') {
+    list = list.filter(a => a.genres.includes(genre));
+  }
+
+  if (tab === 'popular') {
+    list.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+  } else if (tab === 'airing') {
+    const airing = list.filter(a => a.status === 'Currently Airing');
+    list = airing.length > 0 ? airing : list.slice(0, 6);
+  } else if (tab === 'completed') {
+    list = list.filter(a => a.status === 'Completed');
+  }
+
+  renderAnimeGrid(list);
+  if (window.lucide) lucide.createIcons();
+}
