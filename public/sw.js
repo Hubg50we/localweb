@@ -1,5 +1,5 @@
-// HiAnime v11.0 Universal Multi-Source Streaming Service Worker
-const CACHE_NAME = 'hianime-v11-multisource';
+// HiAnime v13.0 Universal Multi-Source Streaming & SFX/Gamepad Service Worker
+const CACHE_NAME = 'hianime-v13-sfx-gamepad';
 const STATIC_ASSETS = [
   './',
   './index.html',

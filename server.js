@@ -319,33 +319,33 @@ app.get('/api/sources/archive', async (req, res) => {
       return res.json({ success: false, message: 'No archive items found for this title' });
     }
 
-    const identifier = docs[0].identifier;
-    const metaRes = await fetch(`https://archive.org/metadata/${encodeURIComponent(identifier)}`, {
-      headers: { 'User-Agent': 'HiAnime-Universal/11.0' },
-      signal: AbortSignal.timeout(9000)
-    }).catch(() => null);
+    for (const doc of docs.slice(0, 5)) {
+      const identifier = doc.identifier;
+      const metaRes = await fetch(`https://archive.org/metadata/${encodeURIComponent(identifier)}`, {
+        headers: { 'User-Agent': 'HiAnime-Universal/11.0' },
+        signal: AbortSignal.timeout(9000)
+      }).catch(() => null);
 
-    if (!metaRes || !metaRes.ok) {
-      return res.json({ success: false, message: 'Archive metadata lookup failed or timed out' });
-    }
-    const metaJson = await metaRes.json().catch(() => null);
-    const files = metaJson?.files || [];
+      if (!metaRes || !metaRes.ok) continue;
+      const metaJson = await metaRes.json().catch(() => null);
+      const files = metaJson?.files || [];
 
-    const mp4Files = files.filter(f => f.name && (f.name.endsWith('.mp4') || f.name.endsWith('.webm') || f.format === 'h.264' || f.format === 'MPEG4'));
-    const selectedFile = mp4Files.find(f => f.name.toLowerCase().includes(`ep${epNum}`) || f.name.toLowerCase().includes(`ep_${epNum}`) || f.name.toLowerCase().includes(`0${epNum}`)) || mp4Files[0];
-    const subFile = files.find(f => f.name && (f.name.endsWith('.vtt') || f.name.endsWith('.srt')));
+      const mp4Files = files.filter(f => f.name && (f.name.endsWith('.mp4') || f.name.endsWith('.webm') || (f.format && (f.format.toLowerCase().includes('mp4') || f.format.toLowerCase().includes('h.264')))));
+      const selectedFile = mp4Files.find(f => f.name.toLowerCase().includes(`ep${epNum}`) || f.name.toLowerCase().includes(`ep_${epNum}`) || f.name.toLowerCase().includes(`0${epNum}`)) || mp4Files[0];
+      const subFile = files.find(f => f.name && (f.name.endsWith('.vtt') || f.name.endsWith('.srt')));
 
-    if (selectedFile) {
-      const streamUrl = `https://archive.org/download/${identifier}/${encodeURIComponent(selectedFile.name)}`;
-      const subtitleUrl = subFile ? `https://archive.org/download/${identifier}/${encodeURIComponent(subFile.name)}` : null;
-      return res.json({
-        success: true,
-        source: 'archive.org',
-        identifier,
-        streamUrl,
-        subtitleUrl,
-        title: docs[0].title || title
-      });
+      if (selectedFile) {
+        const streamUrl = `https://archive.org/download/${identifier}/${encodeURIComponent(selectedFile.name)}`;
+        const subtitleUrl = subFile ? `https://archive.org/download/${identifier}/${encodeURIComponent(subFile.name)}` : null;
+        return res.json({
+          success: true,
+          source: 'archive.org',
+          identifier,
+          streamUrl,
+          subtitleUrl,
+          title: doc.title || title
+        });
+      }
     }
 
     return res.json({ success: false, message: 'No playable video files in archive metadata' });

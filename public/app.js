@@ -1,3 +1,511 @@
+
+// HTML5 Gamepad API & 2D Spatial Focus Manager
+class GamepadSpatialNavigation {
+  constructor() {
+    this.active = false;
+    this.focusedEl = null;
+    this.lastActionTime = 0;
+    this.debounceMs = 180;
+    this.init();
+  }
+  init() {
+    window.addEventListener('gamepadconnected', (e) => {
+      console.log('[Gamepad] Connected:', e.gamepad.id);
+      this.active = true;
+      this.showHud();
+      soundEngine.playSuccess();
+      showToast(`🎮 Controller Connected: ${e.gamepad.id.slice(0, 24)}...`, 'success', 3000);
+      this.startLoop();
+    });
+    window.addEventListener('gamepaddisconnected', (e) => {
+      console.log('[Gamepad] Disconnected:', e.gamepad.id);
+      this.active = false;
+      this.hideHud();
+      this.clearFocus();
+      showToast('🎮 Controller Disconnected', 'info', 2000);
+    });
+  }
+  showHud() {
+    const hud = document.getElementById('controllerHudBar');
+    if (hud) hud.classList.add('visible');
+  }
+  hideHud() {
+    const hud = document.getElementById('controllerHudBar');
+    if (hud) hud.classList.remove('visible');
+  }
+  clearFocus() {
+    if (this.focusedEl) {
+      this.focusedEl.classList.remove('spatial-focus');
+      this.focusedEl = null;
+    }
+  }
+  setFocus(el) {
+    if (!el) return;
+    this.clearFocus();
+    this.focusedEl = el;
+    el.classList.add('spatial-focus');
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    soundEngine.playHover();
+  }
+  startLoop() {
+    const poll = () => {
+      if (!this.active) return;
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const gp = gamepads[0];
+      if (gp) {
+        this.handleGamepad(gp);
+      }
+      requestAnimationFrame(poll);
+    };
+    requestAnimationFrame(poll);
+  }
+  handleGamepad(gp) {
+    const now = performance.now();
+    if (now - this.lastActionTime < this.debounceMs) return;
+
+    const stickX = gp.axes[0] || 0;
+    const stickY = gp.axes[1] || 0;
+    const deadzone = 0.28;
+
+    const dpadUp = gp.buttons[12]?.pressed;
+    const dpadDown = gp.buttons[13]?.pressed;
+    const dpadLeft = gp.buttons[14]?.pressed;
+    const dpadRight = gp.buttons[15]?.pressed;
+
+    let dir = null;
+    if (dpadUp || stickY < -deadzone) dir = 'up';
+    else if (dpadDown || stickY > deadzone) dir = 'down';
+    else if (dpadLeft || stickX < -deadzone) dir = 'left';
+    else if (dpadRight || stickX > deadzone) dir = 'right';
+
+    if (dir) {
+      this.navigateDirection(dir);
+      this.lastActionTime = now;
+      return;
+    }
+
+    // Buttons
+    // A / Cross (btn 0): Click / Activate
+    if (gp.buttons[0]?.pressed) {
+      soundEngine.playClick();
+      if (this.focusedEl) this.focusedEl.click();
+      this.lastActionTime = now;
+      return;
+    }
+    // B / Circle (btn 1): Back / Close active modal
+    if (gp.buttons[1]?.pressed) {
+      soundEngine.playClick();
+      const closePlayer = document.getElementById('closeModalBtn');
+      if (closePlayer && document.getElementById('playerModal')?.classList.contains('active')) {
+        closePlayer.click();
+      } else {
+        const activeModal = document.querySelector('.player-modal.active, .who-watching-modal.active, .command-palette-modal.active');
+        if (activeModal) activeModal.classList.remove('active');
+        document.body.classList.remove('modal-open');
+      }
+      this.lastActionTime = now;
+      return;
+    }
+    // X / Square (btn 2): +Watchlist or Skip Intro
+    if (gp.buttons[2]?.pressed) {
+      soundEngine.playClick();
+      const skipBtn = document.getElementById('aniSkipBtn');
+      if (skipBtn && skipBtn.style.display !== 'none') {
+        skipBtn.click();
+      } else if (this.focusedEl && this.focusedEl.dataset.id) {
+        toggleWatchlist(this.focusedEl.dataset.id);
+      }
+      this.lastActionTime = now;
+      return;
+    }
+    // Y / Triangle (btn 3): Search / Command Palette
+    if (gp.buttons[3]?.pressed) {
+      soundEngine.playClick();
+      const palette = document.getElementById('commandPaletteModal');
+      if (palette) {
+        palette.classList.toggle('active');
+        const input = document.getElementById('paletteSearchInput');
+        if (input) input.focus();
+      }
+      this.lastActionTime = now;
+      return;
+    }
+    // LB (btn 4): Prev Ep
+    if (gp.buttons[4]?.pressed) {
+      soundEngine.playClick();
+      const prev = document.getElementById('prevEpBtn');
+      if (prev) prev.click();
+      this.lastActionTime = now;
+      return;
+    }
+    // RB (btn 5): Next Ep
+    if (gp.buttons[5]?.pressed) {
+      soundEngine.playClick();
+      const next = document.getElementById('nextEpBtn');
+      if (next) next.click();
+      this.lastActionTime = now;
+      return;
+    }
+    // Start / Options (btn 9): Toggle Theater / Lights Off
+    if (gp.buttons[9]?.pressed) {
+      soundEngine.playClick();
+      const lights = document.getElementById('lightsOffToggleBtn');
+      if (lights) lights.click();
+      this.lastActionTime = now;
+      return;
+    }
+  }
+  getInteractiveElements() {
+    const isModalOpen = document.getElementById('playerModal')?.classList.contains('active');
+    const container = isModalOpen ? document.getElementById('playerModal') : document;
+    return Array.from(container.querySelectorAll('.anime-card, .btn-primary, .server-pill, .ep-btn, .nav-action-btn, .category-pill'))
+      .filter(el => {
+        const style = window.getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetWidth > 0;
+      });
+  }
+  navigateDirection(dir) {
+    const items = this.getInteractiveElements();
+    if (items.length === 0) return;
+    if (!this.focusedEl || !items.includes(this.focusedEl)) {
+      this.setFocus(items[0]);
+      return;
+    }
+
+    const curRect = this.focusedEl.getBoundingClientRect();
+    const curCenter = { x: curRect.left + curRect.width / 2, y: curRect.top + curRect.height / 2 };
+
+    let bestItem = null;
+    let minDistance = Infinity;
+
+    items.forEach(el => {
+      if (el === this.focusedEl) return;
+      const r = el.getBoundingClientRect();
+      const c = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      const dx = c.x - curCenter.x;
+      const dy = c.y - curCenter.y;
+
+      let valid = false;
+      if (dir === 'up' && dy < -10) valid = true;
+      if (dir === 'down' && dy > 10) valid = true;
+      if (dir === 'left' && dx < -10) valid = true;
+      if (dir === 'right' && dx > 10) valid = true;
+
+      if (valid) {
+        const dist = Math.hypot(dx, dy);
+        if (dist < minDistance) {
+          minDistance = dist;
+          bestItem = el;
+        }
+      }
+    });
+
+    if (bestItem) this.setFocus(bestItem);
+  }
+}
+const gamepadNav = new GamepadSpatialNavigation();
+
+
+// Signature HiAnime Hover Quick-Preview Popover (Qtip)
+let qtipTimer = null;
+let qtipHideTimer = null;
+
+function initHoverQtip() {
+  const qtip = document.getElementById('animeHoverQtip');
+  if (!qtip) return;
+
+  qtip.onmouseenter = () => {
+    if (qtipHideTimer) {
+      clearTimeout(qtipHideTimer);
+      qtipHideTimer = null;
+    }
+  };
+  qtip.onmouseleave = () => {
+    qtipHideTimer = setTimeout(() => {
+      qtip.classList.remove('visible');
+    }, 150);
+  };
+
+  document.addEventListener('mouseover', (e) => {
+    const card = e.target.closest('.anime-card');
+    if (!card) return;
+
+    soundEngine.playHover();
+
+    if (qtipHideTimer) {
+      clearTimeout(qtipHideTimer);
+      qtipHideTimer = null;
+    }
+
+    if (qtipTimer) clearTimeout(qtipTimer);
+
+    qtipTimer = setTimeout(() => {
+      const animeId = card.dataset.id;
+      const anime = (currentAnimeList || []).find(a => a.id === animeId) || 
+                    (typeof animeDatabase !== 'undefined' && animeDatabase.find(a => a.id === animeId)) ||
+                    (typeof animeData !== 'undefined' && (animeData.topAiring || []).find(a => a.id === animeId));
+      
+      if (!anime) return;
+
+      const title = anime.title || 'Anime';
+      const rating = anime.rating || '8.5';
+      const type = anime.type || 'TV';
+      const status = anime.status || 'Finished';
+      const sub = anime.subEpisodes || 12;
+      const dub = anime.dubEpisodes || 12;
+      const synopsis = anime.synopsis || anime.description || 'Watch full episodes in high quality online on HiAnime.';
+      const genres = Array.isArray(anime.genres) ? anime.genres.slice(0, 4) : ['Action', 'Fantasy'];
+
+      qtip.innerHTML = `
+        <div class="qtip-title">${escapeHtml(title)}</div>
+        <div class="qtip-meta">
+          <span style="color:#ffbe0b;font-weight:700;">★ ${rating}</span>
+          <span class="badge-sub" style="font-size:0.68rem;padding:2px 6px;">SUB ${sub}</span>
+          <span class="badge-dub" style="font-size:0.68rem;padding:2px 6px;">DUB ${dub}</span>
+          <span style="color:#888;">${type} • ${status}</span>
+        </div>
+        <div class="qtip-synopsis">${escapeHtml(synopsis)}</div>
+        <div class="qtip-genres">
+          ${genres.map(g => `<span class="qtip-genre-tag">${escapeHtml(g)}</span>`).join('')}
+        </div>
+        <div class="qtip-actions">
+          <button type="button" class="qtip-btn-watch" onclick="openWatchModal('${anime.id}', 1)"><i data-lucide="play"></i> Watch Now</button>
+          <button type="button" class="qtip-btn-watchlist" onclick="toggleWatchlist('${anime.id}')"><i data-lucide="bookmark"></i> + Watchlist</button>
+        </div>
+      `;
+
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons({ root: qtip });
+      }
+
+      const rect = card.getBoundingClientRect();
+      const qtipWidth = 320;
+      let left = rect.right + 12;
+      if (left + qtipWidth > window.innerWidth) {
+        left = Math.max(10, rect.left - qtipWidth - 12);
+      }
+      let top = Math.max(10, Math.min(window.innerHeight - 260, rect.top));
+
+      qtip.style.left = `${left}px`;
+      qtip.style.top = `${top}px`;
+      qtip.classList.add('visible');
+    }, 350);
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    const card = e.target.closest('.anime-card');
+    if (!card) return;
+    if (qtipTimer) clearTimeout(qtipTimer);
+    qtipHideTimer = setTimeout(() => {
+      qtip.classList.remove('visible');
+    }, 200);
+  });
+}
+
+
+function updateAmbientCinemaGlow(imageUrl) {
+  if (!imageUrl) return;
+  const playerGlow = document.getElementById('ambientCinemaGlow');
+  if (playerGlow) {
+    playerGlow.style.backgroundImage = `url('${imageUrl}')`;
+  }
+  const spotlightGlow = document.getElementById('spotlightAmbientGlow');
+  if (spotlightGlow) {
+    spotlightGlow.style.backgroundImage = `url('${imageUrl}')`;
+  }
+}
+
+// HiAnime v13.0 Core Engine - Safe Storage & Sound Engine
+
+function safeParseString(str, fallback) {
+  try {
+    if (!str || str === 'undefined' || str === 'null') return fallback;
+    const parsed = JSON.parse(str);
+    return parsed !== null && parsed !== undefined ? parsed : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function safeJsonParse(key, fallback) {
+  try {
+    const val = localStorage.getItem(key);
+    if (val === null || val === undefined) return fallback;
+    const parsed = JSON.parse(val);
+    return parsed !== null && parsed !== undefined ? parsed : fallback;
+  } catch (e) {
+    console.warn(`[Storage] Corrupted key "${key}", recovering with fallback:`, e.message);
+    try { localStorage.setItem(key, JSON.stringify(fallback)); } catch (_) {}
+    return fallback;
+  }
+}
+
+// Procedural Web Audio API Sound Engine (Zero External Audio Files)
+class ProceduralSoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.enabled = safeJsonParse('hianime_sfx_enabled', true);
+    this.lastHoverTime = 0;
+  }
+  init() {
+    if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+  toggle() {
+    this.enabled = !this.enabled;
+    try { localStorage.setItem('hianime_sfx_enabled', JSON.stringify(this.enabled)); } catch (_) {}
+    return this.enabled;
+  }
+  playHover() {
+    if (!this.enabled) return;
+    if (document.fullscreenElement || document.getElementById('lightsOffOverlay')?.classList.contains('active')) return;
+    const now = performance.now();
+    if (now - this.lastHoverTime < 60) return;
+    this.lastHoverTime = now;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.035);
+      gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.035);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.035);
+    } catch (_) {}
+  }
+  playClick() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc1.type = 'triangle';
+      osc2.type = 'triangle';
+      osc1.frequency.setValueAtTime(520, t);
+      osc2.frequency.setValueAtTime(780, t);
+      gain.gain.setValueAtTime(0.07, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc1.start();
+      osc2.start();
+      osc1.stop(t + 0.08);
+      osc2.stop(t + 0.08);
+    } catch (_) {}
+  }
+  playModalOpen() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(220, t);
+      osc.frequency.exponentialRampToValueAtTime(660, t + 0.14);
+      gain.gain.setValueAtTime(0.06, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(t + 0.14);
+    } catch (_) {}
+  }
+  playModalClose() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(660, t);
+      osc.frequency.exponentialRampToValueAtTime(220, t + 0.14);
+      gain.gain.setValueAtTime(0.06, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(t + 0.14);
+    } catch (_) {}
+  }
+  playSuccess() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const t = this.ctx.currentTime + (i * 0.07);
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.06, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.12);
+      });
+    } catch (_) {}
+  }
+  playAlert() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      [587.33, 880].forEach((freq, i) => {
+        const t = this.ctx.currentTime + (i * 0.08);
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.06, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.1);
+      });
+    } catch (_) {}
+  }
+}
+const soundEngine = new ProceduralSoundEngine();
+
+// Neon Top Loading Progress Bar Controller
+function startTopProgress() {
+  const bar = document.getElementById('topProgressBar');
+  if (!bar) return;
+  bar.classList.add('active');
+  bar.style.width = '35%';
+  setTimeout(() => { if (bar.classList.contains('active')) bar.style.width = '75%'; }, 180);
+}
+function finishTopProgress() {
+  const bar = document.getElementById('topProgressBar');
+  if (!bar) return;
+  bar.style.width = '100%';
+  setTimeout(() => {
+    bar.classList.remove('active');
+    setTimeout(() => { bar.style.width = '0%'; }, 350);
+  }, 250);
+}
+
 // HiAnime Client Application State
 let currentAnimeList = [];
 let currentSpotlights = [];
@@ -5,7 +513,7 @@ let activeSpotlightIndex = 0;
 let spotlightInterval = null;
 let currentPlayingAnime = null;
 let currentPlayingEpisode = 1;
-let currentServer = 'vidsrc-sub';
+let currentServer = 'vidlink-sub';
 
 // Netflix Multi-Profile Storage System
 const DEFAULT_PROFILES = [
@@ -14,7 +522,7 @@ const DEFAULT_PROFILES = [
   { id: 'p_chibi', name: 'Chibi Fan', avatar: 'chibi', isKid: true }
 ];
 
-let profiles = JSON.parse(localStorage.getItem('hianime_profiles') || 'null');
+let profiles = safeJsonParse('hianime_profiles', null);
 if (!profiles || !Array.isArray(profiles) || profiles.length === 0) {
   profiles = DEFAULT_PROFILES;
   localStorage.setItem('hianime_profiles', JSON.stringify(profiles));
@@ -33,10 +541,10 @@ function getActiveProfile() {
 function loadProfileWatchlist() {
   const key = `hianime_watchlist_${activeProfileId}`;
   const saved = localStorage.getItem(key);
-  if (saved !== null) return JSON.parse(saved);
+  if (saved !== null) return safeParseString(saved, []);
   if (activeProfileId === 'p_default') {
     const legacy = localStorage.getItem('hianime_watchlist');
-    if (legacy) return JSON.parse(legacy);
+    if (legacy) return safeParseString(legacy, []);
   }
   return [];
 }
@@ -52,10 +560,10 @@ function saveProfileWatchlist(list) {
 function loadProfileWatchHistory() {
   const key = `hianime_watch_history_${activeProfileId}`;
   const saved = localStorage.getItem(key);
-  if (saved !== null) return JSON.parse(saved);
+  if (saved !== null) return safeParseString(saved, []);
   if (activeProfileId === 'p_default') {
     const legacy = localStorage.getItem('hianime_watch_history');
-    if (legacy) return JSON.parse(legacy);
+    if (legacy) return safeParseString(legacy, []);
   }
   return [];
 }
@@ -286,23 +794,12 @@ function toggleSandboxLock() {
   showToast(sandboxLockEnabled ? 'Sandbox Ad Lock: ON (Popup Ads Blocked)' : 'Sandbox Ad Lock: OFF (Relaxed Permissions)', sandboxLockEnabled ? 'success' : 'info');
 }
 
-// Register Offline Service Worker (v6.0 Final PWA) with auto-update & controllerchange refresh
+// Register Offline Service Worker (v11.0 Universal Multi-Source PWA)
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      console.log('[PWA] Service Worker controller changed, refreshing to load newest assets...');
-      window.location.reload();
-    }
-  });
-
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then((reg) => {
-      console.log('[PWA] Service Worker v6.0 registered with scope:', reg.scope);
-      // Immediately check for updates
+      console.log('[PWA] Service Worker v11.0 registered with scope:', reg.scope);
       reg.update();
-      window.addEventListener('focus', () => reg.update());
     }).catch((err) => {
       console.warn('[PWA] Service Worker registration failed:', err);
     });
@@ -561,24 +1058,49 @@ function renderTop10(topList) {
 
 let hlsPlayer = null;
 
-function showToast(message, type = 'info') {
+function showToast(message, type = 'info', duration = 3500) {
   let toastContainer = document.getElementById('hianimeToastContainer');
   if (!toastContainer) {
     toastContainer = document.createElement('div');
     toastContainer.id = 'hianimeToastContainer';
-    toastContainer.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none;';
     document.body.appendChild(toastContainer);
   }
+
   const toast = document.createElement('div');
   toast.className = `hianime-toast toast-${type}`;
-  toast.style.cssText = 'background:rgba(22,22,34,0.95);border:1px solid var(--accent-pink);color:#fff;padding:10px 18px;border-radius:12px;font-size:0.85rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.6);backdrop-filter:blur(12px);pointer-events:auto;display:flex;align-items:center;gap:8px;';
-  toast.innerHTML = `<span>⚡</span> <span>${message}</span>`;
+  
+  const icons = {
+    success: '<i data-lucide="check-circle" style="color:#00f0ff;width:18px;height:18px;flex-shrink:0;"></i>',
+    warning: '<i data-lucide="alert-triangle" style="color:#ffbe0b;width:18px;height:18px;flex-shrink:0;"></i>',
+    error: '<i data-lucide="x-circle" style="color:#ff4757;width:18px;height:18px;flex-shrink:0;"></i>',
+    info: '<i data-lucide="info" style="color:var(--accent-pink);width:18px;height:18px;flex-shrink:0;"></i>'
+  };
+
+  toast.innerHTML = `
+    ${icons[type] || icons.info}
+    <span style="font-size:0.86rem;font-weight:600;flex:1;">${escapeHtml(message)}</span>
+    <button type="button" style="background:none;border:none;color:#888;cursor:pointer;padding:0;display:flex;align-items:center;" aria-label="Dismiss">&times;</button>
+    <div class="toast-progress" style="animation-duration:${duration}ms;"></div>
+  `;
+
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    lucide.createIcons({ root: toast });
+  }
+
   toastContainer.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transition = 'opacity 0.4s ease';
-    setTimeout(() => toast.remove(), 400);
-  }, 3000);
+  requestAnimationFrame(() => toast.classList.add('show'));
+
+  if (type === 'success') soundEngine.playSuccess();
+  else if (type === 'warning' || type === 'error') soundEngine.playAlert();
+
+  const dismiss = () => {
+    toast.classList.remove('show');
+    toast.classList.add('hiding');
+    setTimeout(() => { try { toast.remove(); } catch (_) {} }, 300);
+  };
+
+  toast.onclick = dismiss;
+  setTimeout(dismiss, duration);
 }
 
 // --- AUDIO PREFERENCE, MULTI-SOURCE PROVIDERS & AUTO-FAILOVER ---
@@ -592,24 +1114,8 @@ let plyrInstance = null;
 // Configurable Dynamic Providers Registry (editable in Admin Studio & localStorage)
 const DEFAULT_STREAMING_PROVIDERS = [
   {
-    id: "vidsrc-sub",
-    name: "VidSrc (Sub)",
-    type: "embed",
-    audio: "sub",
-    urlTemplate: "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/0",
-    enabled: true
-  },
-  {
-    id: "vidsrc-dub",
-    name: "VidSrc (Dub)",
-    type: "embed",
-    audio: "dub",
-    urlTemplate: "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/1",
-    enabled: true
-  },
-  {
     id: "vidlink-sub",
-    name: "VidLink (Sub)",
+    name: "VidLink HD (Sub)",
     type: "embed",
     audio: "sub",
     urlTemplate: "https://vidlink.pro/anime/{mal_id}/{ep}/sub",
@@ -617,10 +1123,34 @@ const DEFAULT_STREAMING_PROVIDERS = [
   },
   {
     id: "vidlink-dub",
-    name: "VidLink (Dub)",
+    name: "VidLink HD (Dub)",
     type: "embed",
     audio: "dub",
     urlTemplate: "https://vidlink.pro/anime/{mal_id}/{ep}/dub",
+    enabled: true
+  },
+  {
+    id: "multiembed",
+    name: "MultiEmbed Stream",
+    type: "embed",
+    audio: "sub",
+    urlTemplate: "https://multiembed.mov/?video_id={mal_id}&mal=1&s=1&e={ep}",
+    enabled: true
+  },
+  {
+    id: "direct-hls",
+    name: "Direct HLS / Consumet",
+    type: "hls",
+    audio: "sub",
+    urlTemplate: "/api/stream/{slug}/{ep}",
+    enabled: true
+  },
+  {
+    id: "archive-stream",
+    name: "Archive.org Stream",
+    type: "archive",
+    audio: "sub",
+    urlTemplate: "/api/sources/archive?title={title}&ep={ep}",
     enabled: true
   },
   {
@@ -640,14 +1170,6 @@ const DEFAULT_STREAMING_PROVIDERS = [
     enabled: true
   },
   {
-    id: "multiembed",
-    name: "MultiEmbed",
-    type: "embed",
-    audio: "sub",
-    urlTemplate: "https://multiembed.mov/?video_id={mal_id}&mal=1&s=1&e={ep}",
-    enabled: true
-  },
-  {
     id: "twoembed",
     name: "2Anime XYZ",
     type: "embed",
@@ -656,19 +1178,19 @@ const DEFAULT_STREAMING_PROVIDERS = [
     enabled: true
   },
   {
-    id: "archive-stream",
-    name: "Archive.org Stream",
-    type: "archive",
+    id: "vidsrc-sub",
+    name: "VidSrc ICU (Sub)",
+    type: "embed",
     audio: "sub",
-    urlTemplate: "/api/sources/archive?title={title}&ep={ep}",
+    urlTemplate: "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/0",
     enabled: true
   },
   {
-    id: "direct-hls",
-    name: "Direct HLS / Consumet",
-    type: "hls",
-    audio: "sub",
-    urlTemplate: "/api/stream/{slug}/{ep}",
+    id: "vidsrc-dub",
+    name: "VidSrc ICU (Dub)",
+    type: "embed",
+    audio: "dub",
+    urlTemplate: "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/1",
     enabled: true
   }
 ];
@@ -767,6 +1289,30 @@ function updateServerNotice(serverKey) {
     'direct-hls': 'Playing via <strong>Direct HLS / Consumet</strong> — Native Master Playlist'
   };
   noticeEl.innerHTML = labels[serverKey] || `Playing via <strong>${escapeHtml(serverKey)}</strong> Stream Provider.`;
+}
+
+
+// Real-time server health and auto-selection engine
+async function autoSelectBestWorkingServer(anime, epNumber) {
+  if (!anime) return 'vidlink-sub';
+  startTopProgress();
+  showToast('Auto-testing active stream servers for fastest response...', 'info', 2000);
+  
+  const sources = resolveEpisodeSources(anime, epNumber, userAudioPref);
+  // Priority: VidLink, MultiEmbed, Direct HLS
+  const prioritized = sources.filter(s => s.id.startsWith('vidlink') || s.id === 'multiembed' || s.id === 'direct-hls');
+  const target = prioritized.length > 0 ? prioritized[0].id : 'vidlink-sub';
+  
+  currentServer = target;
+  document.querySelectorAll('.server-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.server === currentServer);
+  });
+  
+  const streamInfo = getServerStreamUrl(currentServer, anime, epNumber);
+  loadActivePlayer(streamInfo.url, streamInfo.isEmbed, streamInfo.isDynamic, streamInfo.fallbackEmbed, streamInfo.isArchive);
+  finishTopProgress();
+  showToast(`Auto-routed to optimal server: ${currentServer.toUpperCase()}`, 'success', 2500);
+  return currentServer;
 }
 
 function cycleNextServer(isAuto = false) {
@@ -916,9 +1462,9 @@ async function loadActivePlayer(sourceUrl, isEmbed = true, isDynamic = false, fa
       const isAutoFailover = autoFailoverBox ? autoFailoverBox.checked : true;
       if (isAutoFailover) {
         failoverTimer = setTimeout(() => {
-          console.warn('[Auto-Failover] Server response timeout reached (6s). Cycling to next server.');
+          console.warn('[Auto-Failover] Server response timeout reached (3.5s). Cycling to next working server.');
           cycleNextServer(true);
-        }, 6000);
+        }, 3500);
 
         animeEmbedPlayer.onload = () => {
           if (failoverTimer) {
@@ -1399,7 +1945,7 @@ function setupSubtitleStylerListeners() {
   setupStyleChoiceGroup('subBgOpacityGroup', (val) => updateSubtitleStyle({ bgOpacity: val }));
 
   // Load initial styles
-  const savedStyles = JSON.parse(localStorage.getItem('hianime_subtitle_style') || '{}');
+  const savedStyles = safeJsonParse('hianime_subtitle_style', { fontSize: '125%', textColor: '#ffffff', bgOpacity: '0.5' });
   applySubtitleStyles(savedStyles);
 }
 
@@ -1416,7 +1962,7 @@ function setupStyleChoiceGroup(groupId, onChange) {
 }
 
 function updateSubtitleStyle(partial) {
-  const current = JSON.parse(localStorage.getItem('hianime_subtitle_style') || '{"fontSize":"125%","textColor":"#ffffff","bgOpacity":"0.5"}');
+  const current = safeJsonParse('hianime_subtitle_style', { fontSize: '125%', textColor: '#ffffff', bgOpacity: '0.5' });
   const merged = { ...current, ...partial };
   localStorage.setItem('hianime_subtitle_style', JSON.stringify(merged));
   applySubtitleStyles(merged);
@@ -1452,7 +1998,7 @@ function applySubtitleStyles(styleObj) {
 }
 
 function loadSubtitleStylerPreferences() {
-  const saved = JSON.parse(localStorage.getItem('hianime_subtitle_style') || '{"fontSize":"125%","textColor":"#ffffff","bgOpacity":"0.5"}');
+  const saved = safeJsonParse('hianime_subtitle_style', { fontSize: '125%', textColor: '#ffffff', bgOpacity: '0.5' });
   syncChoiceGroup('subFontSizeGroup', saved.fontSize);
   syncChoiceGroup('subTextColorGroup', saved.textColor);
   syncChoiceGroup('subBgOpacityGroup', saved.bgOpacity);
@@ -1849,6 +2395,9 @@ async function openWatchModal(animeId, episodeNum = 1) {
   syncWatchPartyEpisode(anime.id, episodeNum);
 
   playerModal.classList.add('active');
+  document.body.classList.add('modal-open');
+  soundEngine.playModalOpen();
+  if (anime) updateAmbientCinemaGlow(anime.banner || anime.poster);
   document.body.style.overflow = 'hidden';
   if (window.lucide) lucide.createIcons();
 }
@@ -1879,6 +2428,9 @@ function renderEpisodesSidebar(anime, activeNum) {
 // Close Watch Modal
 function closeWatchModal() {
   playerModal.classList.remove('active');
+  document.body.classList.remove('modal-open');
+  document.body.style.overflow = '';
+  if (typeof soundEngine !== 'undefined') soundEngine.playModalClose();
   toggleLightsOff(false);
   if (failoverTimer) {
     clearTimeout(failoverTimer);
@@ -1886,6 +2438,12 @@ function closeWatchModal() {
   }
   if (animeEmbedPlayer) {
     animeEmbedPlayer.src = 'about:blank';
+    animeEmbedPlayer.style.display = 'none';
+  }
+  if (neonHlsPlayer) {
+    neonHlsPlayer.pause();
+    neonHlsPlayer.removeAttribute('src');
+    neonHlsPlayer.load();
   }
   if (plyrInstance) {
     plyrInstance.pause();
@@ -1899,7 +2457,6 @@ function closeWatchModal() {
     trailerVideo.pause();
     trailerVideo.src = '';
   }
-  document.body.style.overflow = '';
 }
 
 // Watchlist Management
@@ -2758,7 +3315,7 @@ function filterAnimeGrid(tab, genre) {
 // 1. Star Rating Widget Logic
 function initStarRating(animeId) {
   if (!starRatingWidget) return;
-  const ratings = JSON.parse(localStorage.getItem('hianime_ratings') || '{}');
+  const ratings = safeJsonParse('hianime_ratings', {});
   const currentRating = ratings[animeId] || 0;
   updateStarRatingDisplay(currentRating);
 
@@ -2802,7 +3359,7 @@ function updateStarRatingDisplay(rating) {
 // 2. Timestamp Bookmarks Logic
 function initBookmarks(animeId, episodeNum) {
   if (!bookmarksList) return;
-  const bookmarks = JSON.parse(localStorage.getItem(`hianime_bookmarks_${animeId}`) || '[]');
+  const bookmarks = safeJsonParse(`hianime_bookmarks_${animeId}`, []);
   currentAnimeBookmarks = bookmarks;
   renderBookmarksList(animeId, bookmarks);
 }
@@ -2829,7 +3386,7 @@ function addSceneBookmark() {
   if (!note) return;
 
   const animeId = currentPlayingAnime.id;
-  const bookmarks = JSON.parse(localStorage.getItem(`hianime_bookmarks_${animeId}`) || '[]');
+  const bookmarks = safeJsonParse(`hianime_bookmarks_${animeId}`, []);
   const newBookmark = {
     id: 'bm_' + Date.now(),
     epNumber: currentPlayingEpisode,
@@ -2842,7 +3399,7 @@ function addSceneBookmark() {
 }
 
 function deleteBookmark(animeId, bookmarkId) {
-  let bookmarks = JSON.parse(localStorage.getItem(`hianime_bookmarks_${animeId}`) || '[]');
+  let bookmarks = safeJsonParse(`hianime_bookmarks_${animeId}`, []);
   bookmarks = bookmarks.filter(b => b.id !== bookmarkId);
   localStorage.setItem(`hianime_bookmarks_${animeId}`, JSON.stringify(bookmarks));
   renderBookmarksList(animeId, bookmarks);
@@ -2852,7 +3409,7 @@ function deleteBookmark(animeId, bookmarkId) {
 function initComments(animeId, episodeNum) {
   if (!commentsSection) return;
   const key = `hianime_comments_${animeId}_${episodeNum}`;
-  let comments = JSON.parse(localStorage.getItem(key) || 'null');
+  let comments = safeJsonParse(key, []);
   if (!comments) {
     comments = [
       {
@@ -2926,7 +3483,7 @@ function submitCommentForm(e) {
   const animeId = currentPlayingAnime.id;
   const epNum = currentPlayingEpisode;
   const key = `hianime_comments_${animeId}_${epNum}`;
-  const comments = JSON.parse(localStorage.getItem(key) || '[]');
+  const comments = safeJsonParse(key, []);
 
   const newComment = {
     id: 'user_comment_' + Date.now(),
@@ -2950,7 +3507,7 @@ function submitCommentForm(e) {
 
 function toggleCommentLike(animeId, episodeNum, commentId) {
   const key = `hianime_comments_${animeId}_${episodeNum}`;
-  let comments = JSON.parse(localStorage.getItem(key) || '[]');
+  let comments = safeJsonParse(key, []);
   const target = comments.find(c => c.id === commentId);
   if (target) {
     target.likes = (target.likes || 0) + 1;
@@ -2961,7 +3518,7 @@ function toggleCommentLike(animeId, episodeNum, commentId) {
 
 function deleteComment(animeId, episodeNum, commentId) {
   const key = `hianime_comments_${animeId}_${episodeNum}`;
-  let comments = JSON.parse(localStorage.getItem(key) || '[]');
+  let comments = safeJsonParse(key, []);
   comments = comments.filter(c => c.id !== commentId);
   localStorage.setItem(key, JSON.stringify(comments));
   renderCommentsFeed(comments, animeId, episodeNum);
@@ -3188,9 +3745,9 @@ function exportHiAnimeBackup() {
   const backupData = {
     version: '4.0',
     exportedAt: new Date().toISOString(),
-    watchlist: JSON.parse(localStorage.getItem('hianime_watchlist') || '[]'),
-    watchHistory: JSON.parse(localStorage.getItem('hianime_watch_history') || '[]'),
-    ratings: JSON.parse(localStorage.getItem('hianime_ratings') || '{}'),
+    watchlist: safeJsonParse('hianime_watchlist', []),
+    watchHistory: safeJsonParse('hianime_watch_history', []),
+    ratings: safeJsonParse('hianime_ratings', {}),
     preferences: {
       autoNext: localStorage.getItem('hianime_auto_next') !== 'false',
       theme: 'hianime-dark-neon'
@@ -3934,9 +4491,9 @@ async function toggleSpotlightStatus(id) {
 function openOtakuStats() {
   if (!otakuWrappedModal || !otakuWrappedBody) return;
 
-  const history = JSON.parse(localStorage.getItem('hianime_watch_history') || '[]');
-  const savedWatchlist = JSON.parse(localStorage.getItem('hianime_watchlist') || '[]');
-  const ratings = JSON.parse(localStorage.getItem('hianime_ratings') || '{}');
+  const history = safeJsonParse('hianime_watch_history', []);
+  const savedWatchlist = safeJsonParse('hianime_watchlist', []);
+  const ratings = safeJsonParse('hianime_ratings', {});
 
   const totalEpisodesWatched = history.reduce((acc, item) => acc + (item.currentEpisode || 1), 0);
   const estimatedHours = ((totalEpisodesWatched * 24) / 60).toFixed(1);

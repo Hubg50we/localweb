@@ -1,4 +1,4 @@
-const animeData = [
+const animeDatabase = [
   {
     "id": "solo-leveling",
     "malId": "52299",
@@ -57633,6 +57633,6 @@ const animeData = [
   }
 ];
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = animeData;
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = animeDatabase;
 }

@@ -171,7 +171,7 @@ async function runTests() {
     assert(fs.existsSync(path.join(__dirname, '..', 'docs', '404.html')), 'docs/404.html exists for GitHub Pages SPA redirection');
     assert(fs.existsSync(path.join(__dirname, '..', 'docs', '.nojekyll')), 'docs/.nojekyll exists to disable Jekyll processing');
     const swJs = fs.readFileSync(path.join(__dirname, '..', 'public', 'sw.js'), 'utf-8');
-    assert(swJs.includes('hianime-v11-multisource') || swJs.includes('hianime-v10-custom-plyr') || swJs.includes('hianime-v7-real-streams'), 'sw.js defines active enterprise cache version');
+    assert(swJs.includes('hianime-v13-sfx-gamepad') || swJs.includes('hianime-v11-multisource') || swJs.includes('hianime-v10-custom-plyr') || swJs.includes('hianime-v7-real-streams'), 'sw.js defines active enterprise cache version');
 
     // 9. Testing Stream Resolver API & Zero Sample URLs...
     console.log('\n9. Testing Stream Resolver API & Zero Sample URLs...');

@@ -1,23 +1,7 @@
 [
   {
-    "id": "vidsrc-sub",
-    "name": "VidSrc (Sub)",
-    "type": "embed",
-    "audio": "sub",
-    "urlTemplate": "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/0",
-    "enabled": true
-  },
-  {
-    "id": "vidsrc-dub",
-    "name": "VidSrc (Dub)",
-    "type": "embed",
-    "audio": "dub",
-    "urlTemplate": "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/1",
-    "enabled": true
-  },
-  {
     "id": "vidlink-sub",
-    "name": "VidLink (Sub)",
+    "name": "VidLink HD (Sub)",
     "type": "embed",
     "audio": "sub",
     "urlTemplate": "https://vidlink.pro/anime/{mal_id}/{ep}/sub",
@@ -25,10 +9,34 @@
   },
   {
     "id": "vidlink-dub",
-    "name": "VidLink (Dub)",
+    "name": "VidLink HD (Dub)",
     "type": "embed",
     "audio": "dub",
     "urlTemplate": "https://vidlink.pro/anime/{mal_id}/{ep}/dub",
+    "enabled": true
+  },
+  {
+    "id": "multiembed",
+    "name": "MultiEmbed Stream",
+    "type": "embed",
+    "audio": "sub",
+    "urlTemplate": "https://multiembed.mov/?video_id={mal_id}&mal=1&s=1&e={ep}",
+    "enabled": true
+  },
+  {
+    "id": "direct-hls",
+    "name": "Direct HLS / Consumet",
+    "type": "hls",
+    "audio": "sub",
+    "urlTemplate": "/api/stream/{slug}/{ep}",
+    "enabled": true
+  },
+  {
+    "id": "archive-stream",
+    "name": "Archive.org Stream",
+    "type": "archive",
+    "audio": "sub",
+    "urlTemplate": "/api/sources/archive?title={title}&ep={ep}",
     "enabled": true
   },
   {
@@ -48,14 +56,6 @@
     "enabled": true
   },
   {
-    "id": "multiembed",
-    "name": "MultiEmbed",
-    "type": "embed",
-    "audio": "sub",
-    "urlTemplate": "https://multiembed.mov/?video_id={mal_id}&mal=1&s=1&e={ep}",
-    "enabled": true
-  },
-  {
     "id": "twoembed",
     "name": "2Anime XYZ",
     "type": "embed",
@@ -64,19 +64,19 @@
     "enabled": true
   },
   {
-    "id": "archive-stream",
-    "name": "Archive.org Stream",
-    "type": "archive",
+    "id": "vidsrc-sub",
+    "name": "VidSrc ICU (Sub)",
+    "type": "embed",
     "audio": "sub",
-    "urlTemplate": "/api/sources/archive?title={title}&ep={ep}",
+    "urlTemplate": "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/0",
     "enabled": true
   },
   {
-    "id": "direct-hls",
-    "name": "Direct HLS / Consumet",
-    "type": "hls",
-    "audio": "sub",
-    "urlTemplate": "/api/stream/{slug}/{ep}",
+    "id": "vidsrc-dub",
+    "name": "VidSrc ICU (Dub)",
+    "type": "embed",
+    "audio": "dub",
+    "urlTemplate": "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/1",
     "enabled": true
   }
 ]

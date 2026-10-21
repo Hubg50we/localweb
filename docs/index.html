@@ -17,6 +17,8 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
+  <!-- Neon Top Progress Bar -->
+  <div id="topProgressBar"></div>
   <!-- Top Announcement Bar -->
   <div class="top-bar">
     <div class="top-bar-inner">
@@ -62,6 +64,10 @@
           <i data-lucide="terminal"></i>
           <span>ani-cli</span>
         </a>
+        <button class="nav-action-btn sfx-toggle-btn" id="navSfxToggle" title="UI Sound Effects (SFX)">
+          <i data-lucide="volume-2"></i>
+          <span>SFX</span>
+        </button>
         <button class="nav-action-btn" id="randomAnimeBtn" title="Random Anime">
           <i data-lucide="shuffle"></i>
           <span>Random</span>
@@ -139,6 +145,9 @@
               <a href="#" id="openAdminStudioBtn"><i data-lucide="layout-dashboard"></i> Admin CMS Studio</a>
               <a href="#" id="profileWatchlistLink"><i data-lucide="bookmark"></i> Open Watchlist</a>
               <a href="#" id="profileRandomLink"><i data-lucide="shuffle"></i> Pick Random Anime</a>
+              <a href="#" id="profileSfxToggle"><i data-lucide="volume-2"></i> Sound Effects: <strong id="profileSfxStatus" style="margin-left:auto;color:var(--accent-cyan);">ON</strong></a>
+              <a href="#" id="profileReducedMotionToggle"><i data-lucide="zap"></i> Animations: <strong id="profileMotionStatus" style="margin-left:auto;color:var(--accent-pink);">Full 60fps</strong></a>
+              <a href="#" id="profileThemeToggle"><i data-lucide="contrast"></i> High Contrast Mode</a>
               <div class="user-popover-section-label">Neon Themes</div>
               <div class="theme-presets-picker" id="themePresetsPicker">
                 <button class="theme-dot active" data-theme="sakura" title="Sakura Pink" style="background: #ffbade;"></button>
@@ -171,6 +180,7 @@
 
   <!-- Spotlight Carousel Hero -->
   <section class="spotlight-section">
+    <div id="spotlightAmbientGlow" class="ambient-cinema-glow"></div>
     <div class="spotlight-slider" id="spotlightSlider">
       <!-- Slides injected by JavaScript -->
     </div>
@@ -344,6 +354,7 @@
     <div class="player-overlay" id="playerOverlay"></div>
     <div class="lights-off-overlay" id="lightsOffOverlay"></div>
     <div class="player-container">
+      <div id="ambientCinemaGlow" class="ambient-cinema-glow"></div>
       <div class="player-header">
         <div class="player-title-info">
           <h2 id="modalAnimeTitle">Solo Leveling</h2>
@@ -392,6 +403,9 @@
               <span id="streamActiveServerNotice">Playing via <strong>VidSrc Anime (SUB)</strong> — Full Anime Episodes.</span>
             </div>
             <div class="stream-alert-actions">
+              <button type="button" class="stream-quick-switch-btn" id="autoSelectServerBtn" title="Auto-Select Fastest Working Server" style="background: rgba(0, 240, 255, 0.15); border-color: var(--accent-cyan); color: #fff;">
+                <i data-lucide="zap"></i> Auto-Select Server
+              </button>
               <label class="toggle-control auto-failover-toggle" title="Automatically switch server if stream fails or hangs">
                 <input type="checkbox" id="autoFailoverCheck" checked>
                 <span><i data-lucide="zap"></i> Auto-Failover</span>
@@ -1137,9 +1151,21 @@
     </div>
   </footer>
 
+  <!-- Signature HiAnime Hover Quick-Preview Popover (Qtip) -->
+  <div id="animeHoverQtip" class="anime-hover-qtip" role="tooltip"></div>
+
+  <!-- Gamepad / TV Spatial Navigation HUD Bar -->
+  <div id="controllerHudBar" class="controller-hud-bar">
+    <span><span class="controller-btn-prompt">A</span> Select / Play</span>
+    <span><span class="controller-btn-prompt">B</span> Back / Close</span>
+    <span><span class="controller-btn-prompt">X</span> +Watchlist / Skip OP</span>
+    <span><span class="controller-btn-prompt">Y</span> Search</span>
+    <span><span class="controller-btn-prompt">LB/RB</span> Prev/Next</span>
+  </div>
+
   <!-- Plyr HTML5 Player Engine -->
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
-  <script src="./data/anime-data.js?v=11.0"></script>
-  <script src="./app.js?v=11.0"></script>
+  <script src="./data/anime-data.js?v=13.0"></script>
+  <script src="./app.js?v=13.0"></script>
 </body>
 </html>
