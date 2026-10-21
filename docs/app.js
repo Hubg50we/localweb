@@ -5,7 +5,7 @@ let activeSpotlightIndex = 0;
 let spotlightInterval = null;
 let currentPlayingAnime = null;
 let currentPlayingEpisode = 1;
-let currentServer = 'ultra-hd';
+let currentServer = 'vidlink-sub';
 
 // Netflix Multi-Profile Storage System
 const DEFAULT_PROFILES = [
@@ -500,23 +500,20 @@ function showToast(message, type = 'info') {
   }, 3000);
 }
 
-const SERVER_ROTATION = ['ultra-hd', 'vidlink-sub', 'vidlink-dub', 'twoembed', 'direct-hls'];
+const SERVER_ROTATION = ['vidlink-sub', 'vidlink-dub', 'multiembed', 'twoembed', 'direct-hls'];
 
 function updateServerNotice(serverKey) {
   const noticeEl = document.getElementById('streamActiveServerNotice');
   if (!noticeEl) return;
   const labels = {
-    'ultra-hd': 'Playing in <strong>⚡ Ultra HD 1080p Engine</strong> (Zero buffering, Studio Quality)',
-    'vidsrc': 'Playing in <strong>⚡ Ultra HD 1080p Engine</strong> (Zero buffering, Studio Quality)',
-    'vidlink-sub': 'Playing in <strong>VidLink HD Sub</strong> (Full Series Episodes, Multilingual)',
-    'multiembed': 'Playing in <strong>VidLink HD Sub</strong> (Full Series Episodes, Multilingual)',
-    'vidlink-dub': 'Playing in <strong>VidLink HD Dub</strong> (English Dubbed Audio)',
-    'vidsrc-classic': 'Playing in <strong>VidLink HD Dub</strong> (English Dubbed Audio)',
-    'streamwish': 'Playing in <strong>VidLink HD Dub</strong> (English Dubbed Audio)',
-    'twoembed': 'Playing in <strong>2Embed Stream</strong> (Alternative Multi-Stream Gateway)',
-    'direct-hls': 'Playing in <strong>Direct HLS Native Player</strong> (HTML5 Custom Controls)'
+    'vidlink-sub': 'Playing via <strong>VidLink Stream (SUB)</strong> — Full Anime Episodes',
+    'vidlink-dub': 'Playing via <strong>VidLink Stream (DUB)</strong> — English Dubbed Audio',
+    'multiembed': 'Playing via <strong>MegaCloud Stream</strong> — Fast Multi-Source Gateway',
+    'megacloud': 'Playing via <strong>MegaCloud Stream</strong> — Fast Multi-Source Gateway',
+    'twoembed': 'Playing via <strong>2Embed Stream</strong> — Alternative Gateway',
+    'direct-hls': 'Playing via <strong>Direct HLS Stream</strong> — HTML5 Native Player'
   };
-  noticeEl.innerHTML = labels[serverKey] || 'Streaming via Active Gateway.';
+  noticeEl.innerHTML = labels[serverKey] || 'Playing via Active Stream Gateway.';
 }
 
 function cycleNextServer() {
@@ -545,19 +542,13 @@ function getServerStreamUrl(serverName, anime, epNumber) {
   const ep = (anime.episodes && anime.episodes.find(e => e.number === epNumber)) || 
     (anime.episodes && anime.episodes[0]) || 
     { number: epNumber };
-  const yid = anime.youtubeId || (ep && ep.youtubeId) || 'BwIdVcxzU10';
 
   updateServerNotice(serverName);
 
   switch (serverName) {
-    case 'ultra-hd':
-    case 'vidsrc':
-      return { 
-        url: ep.ultraHdUrl || `https://www.youtube-nocookie.com/embed/${yid}?autoplay=1&enablejsapi=1`, 
-        isEmbed: true 
-      };
     case 'vidlink-sub':
-    case 'multiembed':
+    case 'vidsrc':
+    case 'ultra-hd':
       return { 
         url: ep.vidlinkSubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/sub?fallback=true`, 
         isEmbed: true 
@@ -567,6 +558,12 @@ function getServerStreamUrl(serverName, anime, epNumber) {
     case 'streamwish':
       return { 
         url: ep.vidlinkDubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/dub?fallback=true`, 
+        isEmbed: true 
+      };
+    case 'multiembed':
+    case 'megacloud':
+      return { 
+        url: ep.megaCloudUrl || `https://multiembed.mov/?video_id=${mal}&an=1&ep=${epNumber}`, 
         isEmbed: true 
       };
     case 'twoembed':
@@ -581,7 +578,7 @@ function getServerStreamUrl(serverName, anime, epNumber) {
       };
     default:
       return { 
-        url: ep.ultraHdUrl || `https://www.youtube-nocookie.com/embed/${yid}?autoplay=1&enablejsapi=1`, 
+        url: ep.vidlinkSubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/sub?fallback=true`, 
         isEmbed: true 
       };
   }
@@ -1388,7 +1385,7 @@ function setupEventListeners() {
       const targetPill = e.target.closest('.server-pill');
       if (!targetPill) return;
       targetPill.classList.add('active');
-      currentServer = targetPill.dataset.server || 'ultra-hd';
+      currentServer = targetPill.dataset.server || 'vidlink-sub';
 
       if (currentPlayingAnime) {
         const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
