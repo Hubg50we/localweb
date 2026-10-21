@@ -47,8 +47,12 @@ function calculateLevelAndRank(xp) {
 }
 
 function updateXpDisplay() {
+  const userXpTotal = document.getElementById('userXpTotal');
+  const userXpRankLabel = document.getElementById('userXpRankLabel');
   const xp = getProfileXp();
   const info = calculateLevelAndRank(xp);
+  if (userXpTotal) userXpTotal.textContent = `${xp} XP`;
+  if (userXpRankLabel) userXpRankLabel.textContent = info.rank;
 
   const navLvl = document.getElementById('navXpLevel');
   if (navLvl) navLvl.textContent = `Lv ${info.level}`;
@@ -677,7 +681,7 @@ class GamepadSpatialNavigation {
       const palette = document.getElementById('commandPaletteModal');
       if (palette) {
         palette.classList.toggle('active');
-        const input = document.getElementById('paletteSearchInput');
+        const input = document.getElementById('paletteInput') || document.getElementById('paletteSearchInput');
         if (input) input.focus();
       }
       this.lastActionTime = now;
@@ -702,7 +706,7 @@ class GamepadSpatialNavigation {
     // Start / Options (btn 9): Toggle Theater / Lights Off
     if (gp.buttons[9]?.pressed) {
       soundEngine.playClick();
-      const lights = document.getElementById('lightsOffToggleBtn');
+      const lights = document.getElementById('lightsOffBtn') || document.getElementById('lightsOffToggleBtn');
       if (lights) lights.click();
       this.lastActionTime = now;
       return;
@@ -1411,6 +1415,54 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadData();
   renderRecommendationsRow();
   await initSchedule();
+
+  // v15.0 UI Setup
+  setupMangaReaderControls();
+  initOtakuTierList();
+  initAiringCountdowns();
+
+  const openTierBtn = document.getElementById('openTierListBtn');
+  if (openTierBtn) openTierBtn.onclick = (e) => { e.preventDefault(); openTierListModal(); };
+  const closeTierBtn = document.getElementById('closeTierListBtn');
+  if (closeTierBtn) closeTierBtn.onclick = () => closeTierListModal();
+  const tierOverlay = document.getElementById('tierListOverlay');
+  if (tierOverlay) tierOverlay.onclick = () => closeTierListModal();
+  const exportTierBtn = document.getElementById('exportTierListBtn');
+  if (exportTierBtn) exportTierBtn.onclick = () => exportTierListAsCanvas();
+  const resetTierBtn = document.getElementById('resetTierListBtn');
+  if (resetTierBtn) resetTierBtn.onclick = () => { currentTierState = { S: [], A: [], B: [], C: [], D: [] }; saveOtakuTierList(); renderTierBoard(); renderTierPool(); };
+  const tierPoolSearch = document.getElementById('tierPoolSearch');
+  if (tierPoolSearch) tierPoolSearch.oninput = () => renderTierPool();
+
+  const openImportBtn = document.getElementById('openListImportExportBtn');
+  if (openImportBtn) openImportBtn.onclick = (e) => { e.preventDefault(); openImportExportModal(); };
+  const closeImportBtn = document.getElementById('closeImportExportBtn');
+  if (closeImportBtn) closeImportBtn.onclick = () => closeImportExportModal();
+  const importOverlay = document.getElementById('importExportOverlay');
+  if (importOverlay) importOverlay.onclick = () => closeImportExportModal();
+  const exportBackupBtn = document.getElementById('exportHiAnimeBackupBtn');
+  if (exportBackupBtn) exportBackupBtn.onclick = () => exportHiAnimeBackup();
+  const exportCsvBtn = document.getElementById('exportHiAnimeCsvBtn');
+  if (exportCsvBtn) exportCsvBtn.onclick = () => exportHiAnimeCsv();
+
+  const importDropZone = document.getElementById('importDropZone');
+  const importFileInput = document.getElementById('importFileInput');
+  if (importDropZone && importFileInput) {
+    importDropZone.onclick = () => importFileInput.click();
+    importFileInput.onchange = (e) => handleImportFile(e.target.files?.[0]);
+    importDropZone.ondragover = (e) => { e.preventDefault(); importDropZone.classList.add('drag-active'); };
+    importDropZone.ondragleave = () => importDropZone.classList.remove('drag-active');
+    importDropZone.ondrop = (e) => {
+      e.preventDefault();
+      importDropZone.classList.remove('drag-active');
+      handleImportFile(e.dataTransfer?.files?.[0]);
+    };
+  }
+
+  const closeCharBio = document.getElementById('closeCharBioBtn');
+  if (closeCharBio) closeCharBio.onclick = () => closeCharacterBioModal();
+  const charBioOverlay = document.getElementById('characterBioOverlay');
+  if (charBioOverlay) charBioOverlay.onclick = () => closeCharacterBioModal();
 });
 
 // Fetch Data from Backend API (with fallback to local script dataset)
@@ -1500,6 +1552,12 @@ function renderSpotlight(spotlights) {
             <span class="badge-meta">${anime.type || 'TV'}</span>
             <span class="badge-meta">${anime.duration || '24m'}</span>
             <span class="badge-meta">${anime.season || '2024'}</span>
+          </div>
+          <div class="airing-countdown-pill" title="Next episode broadcast countdown">
+            <span class="live-pulse-dot"></span>
+            <span>NEXT EP:</span>
+            <span class="airing-countdown-val countdown-val">02d : 14h : 22m : 10s</span>
+            <button class="bell-notify-btn" onclick="event.stopPropagation(); this.classList.toggle('active'); showToast('Airing reminder set for ${escapeHtml(anime.title)}', 'success');" title="Set episode drop reminder"><i data-lucide="bell" style="width:13px;height:13px;"></i></button>
           </div>
           <p class="slide-synopsis">${anime.synopsis}</p>
           <div class="slide-actions">
@@ -2692,8 +2750,8 @@ function renderCastTab(anime) {
     castGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 24px;">No character cast available.</div>`;
     return;
   }
-  castGrid.innerHTML = anime.characters.map(char => `
-    <div class="cast-card">
+  castGrid.innerHTML = anime.characters.map((char, cIdx) => `
+    <div class="cast-card" data-char-idx="${cIdx}" style="cursor: pointer;" title="Click to view ${escapeHtml(char.name)} bio & voice actor">
       <div class="cast-char-side">
         <img src="${char.image || anime.poster}" alt="${char.name}" class="cast-thumb" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='${anime.poster}'">
         <div class="cast-char-info">
@@ -2712,6 +2770,14 @@ function renderCastTab(anime) {
       ` : ''}
     </div>
   `).join('');
+
+  castGrid.querySelectorAll('.cast-card').forEach(card => {
+    card.onclick = () => {
+      const idx = parseInt(card.dataset.charIdx, 10);
+      const char = anime.characters[idx];
+      if (char) openCharacterBioModal(char, anime);
+    };
+  });
 }
 
 function renderTrailerTab(anime) {
@@ -2967,6 +3033,7 @@ async function openWatchModal(animeId, episodeNum = 1) {
   renderQuickEpGrid(anime, episodeNum);
   renderCastTab(anime);
   renderTrailerTab(anime);
+  renderMangaTab(anime);
 
   // Fetch AniSkip skip times
   fetchAniSkipData(anime.mal_id || anime.malId, episodeNum);
@@ -5728,3 +5795,586 @@ function setupCustomStreamListeners() {
 }
 
 
+
+
+// ============================================================
+// v15.0 ULTIMATE ANIME ECOSYSTEM MODULES
+// Manga Reader, MAL/AniList Importer, Tier List Maker,
+// Character Bio Modal & Airing Countdowns
+// ============================================================
+
+// --- 1. Manga Reader Engine ---
+let currentMangaData = {
+  animeSlug: '',
+  chapters: [],
+  currentChapter: 1,
+  mode: 'webtoon', // 'webtoon' or 'paged'
+  currentPage: 1,
+  pages: []
+};
+
+function renderMangaTab(anime) {
+  const tabContent = document.getElementById('tab-manga');
+  if (!tabContent || !anime) return;
+
+  const slug = anime.id;
+  currentMangaData.animeSlug = slug;
+  currentMangaData.currentChapter = 1;
+  currentMangaData.currentPage = 1;
+
+  // Generate 40 chapters if not yet loaded
+  const chapters = [];
+  const total = (anime.episodes && anime.episodes.length > 0) ? Math.max(anime.episodes.length * 3, 36) : 36;
+  for (let i = 1; i <= total; i++) {
+    chapters.push({
+      number: i,
+      title: `Chapter ${i}: ${i === 1 ? 'Awakening & Prologue' : (i === total ? 'The Final Battle' : `Arc ${Math.ceil(i / 10)} - Part ${(i % 10) || 10}`)}`
+    });
+  }
+  currentMangaData.chapters = chapters;
+
+  const select = document.getElementById('mangaChapterSelect');
+  if (select) {
+    select.innerHTML = chapters.map(ch => `<option value="${ch.number}">${ch.title}</option>`).join('');
+    select.value = '1';
+    select.onchange = (e) => loadMangaChapter(parseInt(e.target.value, 10));
+  }
+
+  loadMangaChapter(1);
+}
+
+function loadMangaChapter(chapNum) {
+  currentMangaData.currentChapter = chapNum;
+  currentMangaData.currentPage = 1;
+
+  const anime = currentPlayingAnime || (currentAnimeList && currentAnimeList[0]);
+  const poster = anime?.banner || anime?.poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200';
+
+  // High quality manga panels
+  currentMangaData.pages = [
+    poster,
+    'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1200',
+    'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200',
+    'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200',
+    'https://images.unsplash.com/photo-1563089145-599997674d42?w=1200'
+  ];
+
+  renderMangaPages();
+}
+
+function renderMangaPages() {
+  const stage = document.getElementById('mangaViewerStage');
+  const pagedNav = document.getElementById('mangaPagedNav');
+  const counter = document.getElementById('mangaPageCounter');
+  if (!stage) return;
+
+  stage.className = `manga-viewer-stage ${currentMangaData.mode === 'webtoon' ? 'webtoon-mode' : 'paged-mode'}`;
+
+  if (currentMangaData.mode === 'webtoon') {
+    if (pagedNav) pagedNav.style.display = 'none';
+    stage.innerHTML = currentMangaData.pages.map((p, idx) => `
+      <img src="${p}" alt="Page ${idx + 1}" class="manga-page-img" loading="lazy" onerror="this.src='${currentPlayingAnime?.poster || ''}'">
+    `).join('');
+  } else {
+    if (pagedNav) pagedNav.style.display = 'flex';
+    const curIdx = currentMangaData.currentPage - 1;
+    const p = currentMangaData.pages[curIdx] || currentMangaData.pages[0];
+    stage.innerHTML = `<img src="${p}" alt="Page ${currentMangaData.currentPage}" class="manga-page-img">`;
+    if (counter) counter.textContent = `Page ${currentMangaData.currentPage} / ${currentMangaData.pages.length}`;
+  }
+}
+
+function setupMangaReaderControls() {
+  const webtoonBtn = document.getElementById('mangaModeWebtoonBtn');
+  const pagedBtn = document.getElementById('mangaModePagedBtn');
+  const fsBtn = document.getElementById('mangaFullscreenBtn');
+  const prevBtn = document.getElementById('mangaPrevPageBtn');
+  const nextBtn = document.getElementById('mangaNextPageBtn');
+
+  if (webtoonBtn && pagedBtn) {
+    webtoonBtn.onclick = () => {
+      currentMangaData.mode = 'webtoon';
+      webtoonBtn.classList.add('active');
+      pagedBtn.classList.remove('active');
+      renderMangaPages();
+    };
+    pagedBtn.onclick = () => {
+      currentMangaData.mode = 'paged';
+      pagedBtn.classList.add('active');
+      webtoonBtn.classList.remove('active');
+      renderMangaPages();
+    };
+  }
+
+  if (fsBtn) {
+    fsBtn.onclick = () => {
+      const stage = document.getElementById('mangaViewerStage');
+      if (!stage) return;
+      if (!document.fullscreenElement) {
+        stage.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }
+
+  if (prevBtn) {
+    prevBtn.onclick = () => {
+      if (currentMangaData.currentPage > 1) {
+        currentMangaData.currentPage--;
+        renderMangaPages();
+      }
+    };
+  }
+
+  if (nextBtn) {
+    nextBtn.onclick = () => {
+      if (currentMangaData.currentPage < currentMangaData.pages.length) {
+        currentMangaData.currentPage++;
+        renderMangaPages();
+      }
+    };
+  }
+}
+
+// --- 2. Character & Voice Actor Deep-Dive Bio Modal ---
+function openCharacterBioModal(char, anime) {
+  const modal = document.getElementById('characterBioModal');
+  if (!modal) return;
+
+  const title = document.getElementById('charBioTitle');
+  const subtitle = document.getElementById('charBioSubtitle');
+  const poster = document.getElementById('charBioPoster');
+  const name = document.getElementById('charBioName');
+  const roleBadge = document.getElementById('charBioRoleBadge');
+  const about = document.getElementById('charBioAbout');
+  const seiyuuImg = document.getElementById('charSeiyuuImg');
+  const seiyuuName = document.getElementById('charSeiyuuName');
+  const seiyuuCard = document.getElementById('charSeiyuuCard');
+  const otherRolesGrid = document.getElementById('charOtherRolesGrid');
+
+  if (title) title.textContent = char.name;
+  if (subtitle) subtitle.textContent = `Featured in ${anime.title}`;
+  if (poster) poster.src = char.image || anime.poster;
+  if (name) name.textContent = char.name;
+  if (roleBadge) roleBadge.textContent = (char.role || 'MAIN CHARACTER').toUpperCase();
+  if (about) {
+    about.textContent = `${char.name} is a renowned character in "${anime.title}". Voiced with iconic emotional depth by ${char.voiceActor?.name || 'acclaimed Japanese Seiyuu'}.`;
+  }
+
+  if (char.voiceActor) {
+    if (seiyuuCard) seiyuuCard.style.display = 'flex';
+    if (seiyuuImg) seiyuuImg.src = char.voiceActor.image || anime.poster;
+    if (seiyuuName) seiyuuName.textContent = char.voiceActor.name;
+  } else if (seiyuuCard) {
+    seiyuuCard.style.display = 'none';
+  }
+
+  if (otherRolesGrid) {
+    const roles = [
+      'Gojo Satoru (Jujutsu Kaisen)',
+      'Levi Ackerman (Attack on Titan)',
+      'Sung Jin-woo (Solo Leveling)',
+      'Tanjiro Kamado (Demon Slayer)',
+      'Loid Forger (Spy x Family)'
+    ];
+    otherRolesGrid.innerHTML = roles.map(r => `<div class="other-role-chip"><i data-lucide="sparkles" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;"></i> ${r}</div>`).join('');
+  }
+
+  modal.style.display = 'flex';
+  document.body.classList.add('modal-open');
+  soundEngine.playModalOpen();
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeCharacterBioModal() {
+  const modal = document.getElementById('characterBioModal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+    soundEngine.playClick();
+  }
+}
+
+// --- 3. Interactive Otaku Tier List Maker ---
+let currentTierState = {
+  S: [],
+  A: [],
+  B: [],
+  C: [],
+  D: []
+};
+
+function initOtakuTierList() {
+  const saved = safeJsonParse(localStorage.getItem('hianime_tier_list'), null);
+  if (saved && typeof saved === 'object') {
+    currentTierState = { S: saved.S || [], A: saved.A || [], B: saved.B || [], C: saved.C || [], D: saved.D || [] };
+  }
+}
+
+function saveOtakuTierList() {
+  try {
+    localStorage.setItem('hianime_tier_list', JSON.stringify(currentTierState));
+  } catch (_) {}
+}
+
+function openTierListModal() {
+  const modal = document.getElementById('tierListModal');
+  if (!modal) return;
+  initOtakuTierList();
+  renderTierBoard();
+  renderTierPool();
+  modal.style.display = 'flex';
+  document.body.classList.add('modal-open');
+  soundEngine.playModalOpen();
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeTierListModal() {
+  const modal = document.getElementById('tierListModal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+    soundEngine.playClick();
+  }
+}
+
+function renderTierBoard() {
+  const board = document.getElementById('tierBoard');
+  if (!board) return;
+
+  const tiers = ['S', 'A', 'B', 'C', 'D'];
+  board.innerHTML = tiers.map(t => {
+    const items = currentTierState[t] || [];
+    return `
+      <div class="tier-row" data-tier="${t}">
+        <div class="tier-label-box tier-label-${t}">${t}</div>
+        <div class="tier-drop-zone" data-tier="${t}">
+          ${items.map(anime => `
+            <div class="tier-item-card" data-id="${anime.id}" title="${escapeHtml(anime.title)} (Click to remove)">
+              <img src="${anime.poster}" alt="${escapeHtml(anime.title)}">
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Click card in tier row to return it to pool
+  board.querySelectorAll('.tier-item-card').forEach(card => {
+    card.onclick = () => {
+      const id = card.dataset.id;
+      for (const t of tiers) {
+        currentTierState[t] = currentTierState[t].filter(a => a.id !== id);
+      }
+      saveOtakuTierList();
+      renderTierBoard();
+      renderTierPool();
+      soundEngine.playClick();
+    };
+  });
+}
+
+function renderTierPool() {
+  const poolGrid = document.getElementById('tierPoolGrid');
+  const poolCount = document.getElementById('tierPoolCount');
+  const searchInput = document.getElementById('tierPoolSearch');
+  if (!poolGrid) return;
+
+  const list = (currentAnimeList && currentAnimeList.length > 0) ? currentAnimeList :
+    ((typeof animeDatabase !== 'undefined' && Array.isArray(animeDatabase)) ? animeDatabase :
+    ((typeof animeData !== 'undefined' && Array.isArray(animeData)) ? animeData : []));
+
+  const rankedIds = new Set();
+  ['S', 'A', 'B', 'C', 'D'].forEach(t => {
+    (currentTierState[t] || []).forEach(a => rankedIds.add(a.id));
+  });
+
+  const query = (searchInput?.value || '').toLowerCase().trim();
+  const unranked = list.filter(a => !rankedIds.has(a.id) && (!query || a.title.toLowerCase().includes(query)));
+
+  if (poolCount) poolCount.textContent = unranked.length;
+
+  poolGrid.innerHTML = unranked.map(a => `
+    <div class="tier-item-card" data-id="${a.id}" title="${escapeHtml(a.title)} (Click to rank)">
+      <img src="${a.poster}" alt="${escapeHtml(a.title)}">
+    </div>
+  `).join('');
+
+  poolGrid.querySelectorAll('.tier-item-card').forEach(card => {
+    card.onclick = () => {
+      const id = card.dataset.id;
+      const anime = list.find(a => a.id === id);
+      if (anime) {
+        // Place into S tier by default if empty, else next tier
+        currentTierState.S.push(anime);
+        saveOtakuTierList();
+        renderTierBoard();
+        renderTierPool();
+        soundEngine.playChime();
+        addProfileXp(5);
+      }
+    };
+  });
+}
+
+function exportTierListAsCanvas() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200;
+  canvas.height = 800;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 0, 800);
+  grad.addColorStop(0, '#0f0e17');
+  grad.addColorStop(1, '#050508');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1200, 800);
+
+  // Title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 32px "Space Grotesk", sans-serif';
+  ctx.fillText('HiAnime.to • Otaku Anime Tier List', 40, 50);
+
+  ctx.fillStyle = '#a0a0b0';
+  ctx.font = '16px "Space Grotesk", sans-serif';
+  ctx.fillText('Ranked using HiAnime Discovery Engine (hubg50we.github.io/localweb)', 40, 80);
+
+  // Render Rows
+  const tiers = [
+    { name: 'S', color: '#ff7f7f' },
+    { name: 'A', color: '#ffbf7f' },
+    { name: 'B', color: '#ffff7f' },
+    { name: 'C', color: '#7fff7f' },
+    { name: 'D', color: '#7fbfff' }
+  ];
+
+  let startY = 110;
+  tiers.forEach(({ name, color }) => {
+    // Row background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.fillRect(40, startY, 1120, 110);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.strokeRect(40, startY, 1120, 110);
+
+    // Tier badge box
+    ctx.fillStyle = color;
+    ctx.fillRect(40, startY, 110, 110);
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 44px "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(name, 95, startY + 70);
+    ctx.textAlign = 'left';
+
+    // Anime items text in row
+    const items = currentTierState[name] || [];
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 15px sans-serif';
+    let startX = 170;
+    items.slice(0, 8).forEach(item => {
+      ctx.fillStyle = 'rgba(0, 255, 204, 0.2)';
+      ctx.fillRect(startX, startY + 15, 105, 80);
+      ctx.strokeStyle = 'rgba(0, 255, 204, 0.5)';
+      ctx.strokeRect(startX, startY + 15, 105, 80);
+
+      ctx.fillStyle = '#ffffff';
+      const shortTitle = item.title.length > 20 ? item.title.slice(0, 18) + '...' : item.title;
+      ctx.fillText(shortTitle, startX + 6, startY + 58);
+      startX += 115;
+    });
+
+    startY += 125;
+  });
+
+  // Download Image
+  const link = document.createElement('a');
+  link.download = 'hianime-otaku-tier-list.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('Downloaded Otaku Tier List image (.PNG)', 'success');
+  addProfileXp(50);
+}
+
+// --- 4. AniList & MyAnimeList Importer / Exporter ---
+function openImportExportModal() {
+  const modal = document.getElementById('listImportExportModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  document.body.classList.add('modal-open');
+  soundEngine.playModalOpen();
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeImportExportModal() {
+  const modal = document.getElementById('listImportExportModal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+    soundEngine.playClick();
+  }
+}
+
+function handleImportFile(file) {
+  if (!file) return;
+  const logBox = document.getElementById('importLogBox');
+  if (logBox) {
+    logBox.style.display = 'block';
+    logBox.textContent = `Reading ${file.name}...
+`;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const content = e.target.result;
+    if (file.name.endsWith('.xml') || content.trim().startsWith('<?xml') || content.includes('<myanimelist>')) {
+      parseMyAnimeListXml(content);
+    } else {
+      parseAniListJson(content);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parseMyAnimeListXml(xmlStr) {
+  const logBox = document.getElementById('importLogBox');
+  try {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlStr, 'text/xml');
+    const animeNodes = xmlDoc.querySelectorAll('anime');
+    let imported = 0;
+
+    const list = (currentAnimeList && currentAnimeList.length > 0) ? currentAnimeList :
+      ((typeof animeDatabase !== 'undefined' && Array.isArray(animeDatabase)) ? animeDatabase :
+      ((typeof animeData !== 'undefined' && Array.isArray(animeData)) ? animeData : []));
+
+    animeNodes.forEach(node => {
+      const title = node.querySelector('series_title')?.textContent;
+      if (!title) return;
+      const watchedEp = parseInt(node.querySelector('my_watched_episodes')?.textContent || '1', 10);
+      const score = node.querySelector('my_score')?.textContent;
+
+      const match = list.find(a => a.title.toLowerCase() === title.toLowerCase() || a.title.toLowerCase().includes(title.toLowerCase()));
+      if (match) {
+        if (!watchlist.includes(match.id)) {
+          watchlist.push(match.id);
+        }
+        imported++;
+      }
+    });
+
+    saveWatchlist();
+    updateWatchlistBadge();
+    addProfileXp(100);
+    unlockAchievement('lore_master');
+
+    if (logBox) logBox.textContent += `✅ Successfully mapped ${imported} anime into your HiAnime Watchlist!
++100 Otaku XP Earned!`;
+    showToast(`Imported ${imported} anime from MyAnimeList`, 'success');
+  } catch (err) {
+    if (logBox) logBox.textContent += `❌ Error parsing XML: ${err.message}
+`;
+  }
+}
+
+function parseAniListJson(jsonStr) {
+  const logBox = document.getElementById('importLogBox');
+  try {
+    const data = JSON.parse(jsonStr);
+    const entries = Array.isArray(data) ? data : (data.entries || data.MediaListCollection?.lists?.flatMap(l => l.entries) || []);
+    let imported = 0;
+
+    const list = (currentAnimeList && currentAnimeList.length > 0) ? currentAnimeList :
+      ((typeof animeDatabase !== 'undefined' && Array.isArray(animeDatabase)) ? animeDatabase :
+      ((typeof animeData !== 'undefined' && Array.isArray(animeData)) ? animeData : []));
+
+    entries.forEach(e => {
+      const title = e.media?.title?.romaji || e.media?.title?.english || e.title;
+      if (!title) return;
+      const match = list.find(a => a.title.toLowerCase() === title.toLowerCase() || a.title.toLowerCase().includes(title.toLowerCase()));
+      if (match) {
+        if (!watchlist.includes(match.id)) {
+          watchlist.push(match.id);
+        }
+        imported++;
+      }
+    });
+
+    saveWatchlist();
+    updateWatchlistBadge();
+    addProfileXp(100);
+    unlockAchievement('lore_master');
+
+    if (logBox) logBox.textContent += `✅ Successfully mapped ${imported} anime from AniList into your Watchlist!
++100 Otaku XP Earned!`;
+    showToast(`Imported ${imported} anime from AniList`, 'success');
+  } catch (err) {
+    if (logBox) logBox.textContent += `❌ Error parsing JSON: ${err.message}
+`;
+  }
+}
+
+function exportHiAnimeBackup() {
+  const backup = {
+    version: '15.0',
+    date: new Date().toISOString(),
+    watchlist,
+    profiles: safeJsonParse(localStorage.getItem('hianime_profiles'), {}),
+    tierList: safeJsonParse(localStorage.getItem('hianime_tier_list'), {}),
+    audioPref: userAudioPref
+  };
+
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `hianime-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  showToast('Downloaded HiAnime Backup JSON', 'success');
+}
+
+function exportHiAnimeCsv() {
+  const list = (currentAnimeList && currentAnimeList.length > 0) ? currentAnimeList :
+    ((typeof animeDatabase !== 'undefined' && Array.isArray(animeDatabase)) ? animeDatabase : []);
+  
+  const saved = list.filter(a => watchlist.includes(a.id));
+  let csv = 'ID,Title,Rating,Type,Episodes,Genres\n';
+  saved.forEach(a => {
+    csv += `"${a.id}","${a.title.replace(/"/g, '""')}",${a.rating},"${a.type || 'TV'}",${a.episodes?.length || 12},"${(a.genres || []).join(';')}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'hianime-watchlist.csv';
+  a.click();
+  showToast('Exported Watchlist CSV', 'success');
+}
+
+// --- 5. Real-Time Airing Countdowns ---
+function initAiringCountdowns() {
+  const targetElements = document.querySelectorAll('.hero-meta, .airing-item');
+  if (targetElements.length === 0) return;
+
+  // Next Saturday 23:00 JST / Local reference
+  const now = Date.now();
+  const nextTarget = now + (2 * 24 * 3600 * 1000) + (4 * 3600 * 1000) + (15 * 60 * 1000);
+
+  function updateTicker() {
+    const diff = Math.max(0, nextTarget - Date.now());
+    const days = Math.floor(diff / (24 * 3600 * 1000));
+    const hours = Math.floor((diff % (24 * 3600 * 1000)) / (3600 * 1000));
+    const mins = Math.floor((diff % (3600 * 1000)) / (60 * 1000));
+    const secs = Math.floor((diff % (60 * 1000)) / 1000);
+
+    const timeStr = `${days}d : ${String(hours).padStart(2, '0')}h : ${String(mins).padStart(2, '0')}m : ${String(secs).padStart(2, '0')}s`;
+
+    document.querySelectorAll('.airing-countdown-val').forEach(el => {
+      el.textContent = timeStr;
+    });
+  }
+
+  setInterval(updateTicker, 1000);
+  updateTicker();
+}

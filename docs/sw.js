@@ -1,5 +1,5 @@
-// HiAnime v14.0 Smart Discovery & Otaku XP Service Worker
-const CACHE_NAME = 'hianime-v14-discovery';
+// HiAnime v15.0 Ultimate Anime Ecosystem Service Worker
+const CACHE_NAME = 'hianime-v15-ultimate';
 const STATIC_ASSETS = [
   './',
   './index.html',

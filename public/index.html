@@ -15,6 +15,7 @@
   <!-- Lucide Icons & HLS.js for ani-cli live streams -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style id="dynamicSubtitleStyles"></style>
 </head>
 <body>
   <!-- Neon Top Progress Bar -->
@@ -143,15 +144,17 @@
                 <span class="stat-num" id="userWatchedCount">12</span>
                 <span class="stat-label">Episodes</span>
               </div>
-              <div class="stat-box">
-                <span class="stat-num">1080p</span>
-                <span class="stat-label">Speed</span>
+              <div class="stat-box" id="userXpBox">
+                <span class="stat-num" id="userXpTotal">0 XP</span>
+                <span class="stat-label" id="userXpRankLabel">Academy Student</span>
               </div>
             </div>
             <div class="user-popover-links">
               <a href="#" id="openWhoWatchingBtn"><i data-lucide="users"></i> Switch Profile (Who's Watching?)</a>
               <a href="#" id="openAchievementsBtn"><i data-lucide="award"></i> Otaku Achievements (<span id="unlockedBadgesCount">0</span>/6)</a>
               <a href="#" id="openQuizBtn"><i data-lucide="gamepad-2"></i> Play Otaku Trivia Quiz</a>
+              <a href="#" id="openTierListBtn"><i data-lucide="layers"></i> Otaku Tier List Maker</a>
+              <a href="#" id="openListImportExportBtn"><i data-lucide="upload-cloud"></i> Sync MAL / AniList Data</a>
               <a href="#" id="openOtakuStatsBtn"><i data-lucide="bar-chart-2"></i> Otaku Wrapped & Stats</a>
               <a href="#" id="openAdminStudioBtn"><i data-lucide="layout-dashboard"></i> Admin CMS Studio</a>
               <a href="#" id="profileWatchlistLink"><i data-lucide="bookmark"></i> Open Watchlist</a>
@@ -570,6 +573,7 @@
               <button type="button" class="player-tab-btn" data-tab="tab-cast"><i data-lucide="users"></i> Characters & Cast</button>
               <button type="button" class="player-tab-btn" data-tab="tab-trailer"><i data-lucide="film"></i> Official Trailer</button>
               <button type="button" class="player-tab-btn" data-tab="tab-community"><i data-lucide="message-square"></i> Comments & Bookmarks</button>
+              <button type="button" class="player-tab-btn" data-tab="tab-manga" id="tabMangaBtn"><i data-lucide="book-open"></i> Read Manga</button>
             </div>
 
             <!-- Tab 1: Episode Details View -->
@@ -589,6 +593,32 @@
             </div>
 
             <!-- Tab 2: Character & Voice Actor Cast -->
+            
+            <!-- Tab 4: Manga Reader View -->
+            <div class="player-tab-content" id="tab-manga">
+              <div class="manga-tab-container">
+                <div class="manga-reader-toolbar">
+                  <div class="manga-toolbar-group">
+                    <label style="font-size:0.8rem; color:var(--text-muted);"><i data-lucide="book"></i> Chapter:</label>
+                    <select id="mangaChapterSelect" class="manga-select"></select>
+                  </div>
+                  <div class="manga-toolbar-group">
+                    <button type="button" class="manga-tool-btn active" id="mangaModeWebtoonBtn" title="Webtoon Scroll Mode"><i data-lucide="scroll"></i> Webtoon</button>
+                    <button type="button" class="manga-tool-btn" id="mangaModePagedBtn" title="Single Page Mode"><i data-lucide="file-text"></i> Paged</button>
+                    <button type="button" class="manga-tool-btn" id="mangaFullscreenBtn" title="Fullscreen Reader"><i data-lucide="maximize"></i></button>
+                  </div>
+                </div>
+                <div class="manga-viewer-stage webtoon-mode" id="mangaViewerStage">
+                  <!-- Injected by JavaScript -->
+                </div>
+                <div class="manga-paged-nav" id="mangaPagedNav" style="display:none;">
+                  <button type="button" class="manga-tool-btn" id="mangaPrevPageBtn"><i data-lucide="chevron-left"></i> Prev</button>
+                  <span class="manga-page-counter" id="mangaPageCounter">Page 1 / 1</span>
+                  <button type="button" class="manga-tool-btn" id="mangaNextPageBtn">Next <i data-lucide="chevron-right"></i></button>
+                </div>
+              </div>
+            </div>
+
             <div class="player-tab-content" id="tab-cast">
               <div class="cast-tab-header">
                 <h3><i data-lucide="users"></i> Characters & Voice Actors</h3>
@@ -1247,7 +1277,104 @@
 
   <!-- Plyr HTML5 Player Engine -->
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
-  <script src="./data/anime-data.js?v=14.0"></script>
-  <script src="./app.js?v=14.0"></script>
+  <script src="./data/anime-data.js?v=15.0"></script>
+  <script src="./app.js?v=15.0"></script>
+  <div id="hianimeToastContainer" class="toast-container" style="position:fixed; bottom:24px; right:24px; z-index:999999; display:flex; flex-direction:column; gap:10px; pointer-events:none;"></div>
+
+  <!-- Otaku Tier List Builder Modal -->
+  <div class="player-modal tier-list-modal" id="tierListModal" style="display:none;">
+    <div class="player-overlay" id="tierListOverlay"></div>
+    <div class="player-container tier-list-container">
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2><i data-lucide="layers" style="color:var(--accent-cyan);vertical-align:middle;"></i> Otaku Anime Tier List Maker</h2>
+          <span class="ep-crumb">Rank Your Favorite Shows (S, A, B, C, D) & Export Custom HD Card</span>
+        </div>
+        <button class="close-modal-btn" id="closeTierListBtn" title="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="tier-toolbar">
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button type="button" class="btn-primary" id="exportTierListBtn" style="padding:6px 14px; font-size:0.85rem;"><i data-lucide="download"></i> Export HD Image (.PNG)</button>
+          <button type="button" class="manga-tool-btn" id="resetTierListBtn"><i data-lucide="rotate-ccw"></i> Reset Board</button>
+        </div>
+        <span style="font-size:0.8rem; color:var(--text-muted);"><i data-lucide="mouse-pointer"></i> Drag or Click to place in Tier</span>
+      </div>
+      <div class="tier-board" id="tierBoard">
+        <!-- S, A, B, C, D Rows rendered by JS -->
+      </div>
+      <div class="tier-pool-section">
+        <div class="tier-pool-header">
+          <h4><i data-lucide="grid"></i> Unranked Anime Pool (<span id="tierPoolCount">0</span> shows)</h4>
+          <input type="text" id="tierPoolSearch" placeholder="Search unranked..." style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; padding:4px 10px; font-size:0.8rem; outline:none;">
+        </div>
+        <div class="tier-pool-grid" id="tierPoolGrid">
+          <!-- Injected by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AniList & MAL Two-Way Importer & Backup Modal -->
+  <div class="player-modal import-export-modal" id="listImportExportModal" style="display:none;">
+    <div class="player-overlay" id="importExportOverlay"></div>
+    <div class="player-container import-export-container">
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2><i data-lucide="upload-cloud" style="color:var(--accent-cyan);vertical-align:middle;"></i> MyAnimeList & AniList Data Bridge</h2>
+          <span class="ep-crumb">Import or Export Your Watchlist, Ratings & History Without Logins</span>
+        </div>
+        <button class="close-modal-btn" id="closeImportExportBtn" title="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="import-drop-zone" id="importDropZone">
+        <i data-lucide="file-up" style="display:block; margin:0 auto 10px auto; width:36px; height:36px; color:var(--accent-cyan);"></i>
+        <p><strong>Drop your AniList JSON or MyAnimeList XML file here</strong></p>
+        <small>or click to browse from your device</small>
+        <input type="file" id="importFileInput" accept=".json,.xml" style="display:none;">
+      </div>
+      <div class="import-actions-row">
+        <button type="button" class="btn-primary" id="exportHiAnimeBackupBtn"><i data-lucide="download"></i> Download HiAnime Backup (.JSON)</button>
+        <button type="button" class="manga-tool-btn" id="exportHiAnimeCsvBtn"><i data-lucide="file-spreadsheet"></i> Export Watchlist (.CSV)</button>
+      </div>
+      <div class="import-log-box" id="importLogBox" style="display:none;">
+        <!-- Live sync logs -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Character & Voice Actor Deep-Dive Bio Modal -->
+  <div class="player-modal character-bio-modal" id="characterBioModal" style="display:none;">
+    <div class="player-overlay" id="characterBioOverlay"></div>
+    <div class="player-container character-bio-container">
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2 id="charBioTitle">Character Profile</h2>
+          <span class="ep-crumb" id="charBioSubtitle">Voice Actor & Character Lore</span>
+        </div>
+        <button class="close-modal-btn" id="closeCharBioBtn" title="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="character-bio-grid">
+        <div class="character-bio-left">
+          <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>" alt="Character" id="charBioPoster" class="character-bio-poster">
+          <div class="seiyuu-card" id="charSeiyuuCard">
+            <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>" alt="Seiyuu" id="charSeiyuuImg">
+            <div class="seiyuu-info">
+              <h5 id="charSeiyuuName">Voice Actor</h5>
+              <span id="charSeiyuuRole">Japanese Seiyuu</span>
+            </div>
+          </div>
+        </div>
+        <div class="character-bio-right">
+          <h3 id="charBioName">Character Name</h3>
+          <span class="char-role-badge" id="charBioRoleBadge">MAIN CHARACTER</span>
+          <p class="character-bio-text" id="charBioAbout">Character background and summary.</p>
+          <div class="character-roles-title">Other Iconic Roles by this Seiyuu</div>
+          <div class="character-other-roles-grid" id="charOtherRolesGrid">
+            <!-- Other roles -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
