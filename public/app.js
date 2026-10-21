@@ -389,6 +389,7 @@ async function loadData() {
 // Render Spotlight Hero Slider
 function renderSpotlight(spotlights) {
   if (!spotlights || spotlights.length === 0) return;
+  activeSpotlightIndex = 0;
   spotlightSlider.innerHTML = '';
   sliderDots.innerHTML = '';
 
@@ -440,13 +441,13 @@ function goToSlide(index) {
   const dots = document.querySelectorAll('.slider-dot');
   if (!slides.length) return;
 
-  slides[activeSpotlightIndex].classList.remove('active');
-  dots[activeSpotlightIndex].classList.remove('active');
+  if (slides[activeSpotlightIndex]) slides[activeSpotlightIndex].classList.remove('active');
+  if (dots[activeSpotlightIndex]) dots[activeSpotlightIndex].classList.remove('active');
 
   activeSpotlightIndex = (index + slides.length) % slides.length;
 
-  slides[activeSpotlightIndex].classList.add('active');
-  dots[activeSpotlightIndex].classList.add('active');
+  if (slides[activeSpotlightIndex]) slides[activeSpotlightIndex].classList.add('active');
+  if (dots[activeSpotlightIndex]) dots[activeSpotlightIndex].classList.add('active');
 }
 
 function startSpotlightAutoPlay() {

@@ -21,7 +21,7 @@ const puppeteer = require('puppeteer-core');
   console.log('Active Spotlight Banner style:', spotlightBanner);
 
   console.log('Clicking first anime card...');
-  await page.click('.anime-card');
+  await page.evaluate(() => document.querySelector('.anime-card').click());
   await new Promise(r => setTimeout(r, 2000));
 
   const isModalActive = await page.$eval('#playerModal', el => el.classList.contains('active'));
