@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="referrer" content="no-referrer">
   <title>HiAnime.to - Watch Anime Online Free in HD</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ffbade'/><text y='70' x='50' text-anchor='middle' font-family='sans-serif' font-size='60' font-weight='bold' fill='%230f172a'>Hi</text></svg>">
   <link rel="manifest" href="./manifest.json">
@@ -358,7 +357,7 @@
         <!-- Video Screen Left -->
         <div class="video-wrapper">
           <div class="video-inner">
-            <iframe id="animeEmbedPlayer" src="" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"></iframe>
+            <iframe id="animeEmbedPlayer" src="" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write" referrerpolicy="origin"></iframe>
             <video id="animeVideoPlayer" controls autoplay preload="auto" style="display:none;">
               <source src="" type="video/mp4">
               Your browser does not support the video tag.
@@ -369,7 +368,7 @@
           <div class="stream-alert-banner">
             <div class="stream-alert-left">
               <i data-lucide="sparkles"></i>
-              <span id="streamActiveServerNotice">Playing via <strong>VidLink Stream (SUB)</strong> — Full Anime Episodes.</span>
+              <span id="streamActiveServerNotice">Playing via <strong>VidSrc Anime (SUB)</strong> — Full Anime Episodes.</span>
             </div>
             <button type="button" class="stream-quick-switch-btn" id="streamQuickSwitchBtn" title="Switch to another server">
               <i data-lucide="refresh-cw"></i> Switch Server
@@ -380,14 +379,16 @@
           <div class="server-control-panel">
             <div class="server-group">
               <span class="server-group-label"><i data-lucide="server"></i> SUB:</span>
-              <button class="server-pill active" data-server="vidlink-sub">VidLink Sub</button>
-              <button class="server-pill" data-server="multiembed">MegaCloud</button>
+              <button class="server-pill active" data-server="vidsrc-sub">VidSrc (Sub)</button>
+              <button class="server-pill" data-server="vidlink-sub">VidLink (Sub)</button>
+              <button class="server-pill" data-server="multiembed">MultiEmbed</button>
               <button class="server-pill" data-server="twoembed">2Embed</button>
             </div>
             <div class="server-group">
-              <span class="server-group-label"><i data-lucide="mic"></i> DUB & DIRECT:</span>
-              <button class="server-pill" data-server="vidlink-dub">VidLink Dub</button>
-              <button class="server-pill" data-server="direct-hls">Direct HLS</button>
+              <span class="server-group-label"><i data-lucide="mic"></i> DUB & STREAM:</span>
+              <button class="server-pill" data-server="vidsrc-dub">VidSrc (Dub)</button>
+              <button class="server-pill" data-server="vidlink-dub">VidLink (Dub)</button>
+              <button class="server-pill" data-server="consumet-hls">Consumet HLS</button>
             </div>
             <div class="playback-toggles">
               <button class="ep-nav-btn" id="prevEpBtn" title="Previous Episode (P)"><i data-lucide="skip-back"></i> Prev</button>
@@ -396,7 +397,7 @@
               <button class="player-tool-btn" id="theaterModeBtn" title="Theater Mode (T)"><i data-lucide="maximize-2"></i> Theater</button>
               <button class="player-tool-btn party-btn-highlight" id="watchPartyBtn" title="Start Watch Party Room"><i data-lucide="users"></i> Watch Party</button>
               <button class="player-tool-btn pip-btn-highlight" id="miniPlayerBtn" title="Picture-in-Picture Mini-Player"><i data-lucide="picture-in-picture-2"></i> Mini-Player</button>
-              <button class="player-tool-btn sandbox-lock-btn active" id="sandboxLockBtn" title="Block Third-Party Popup Ads (Iframe Sandbox)"><i data-lucide="shield-check"></i> Ad Lock: <span id="sandboxLockStateText">ON</span></button>
+              <button class="player-tool-btn sandbox-lock-btn" id="sandboxLockBtn" title="Toggle Popup Ad Lock (Iframe Sandbox)"><i data-lucide="shield"></i> Ad Lock: <span id="sandboxLockStateText">OFF</span></button>
               <label class="toggle-control">
                 <input type="checkbox" id="autoNextCheck" checked>
                 <span>Auto Next</span>
@@ -862,7 +863,7 @@
     </div>
   </footer>
 
-  <script src="./data/anime-data.js?v=6.0"></script>
-  <script src="./app.js?v=6.0"></script>
+  <script src="./data/anime-data.js?v=7.0"></script>
+  <script src="./app.js?v=7.0"></script>
 </body>
 </html>

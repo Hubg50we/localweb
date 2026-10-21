@@ -5,7 +5,7 @@ let activeSpotlightIndex = 0;
 let spotlightInterval = null;
 let currentPlayingAnime = null;
 let currentPlayingEpisode = 1;
-let currentServer = 'vidlink-sub';
+let currentServer = 'vidsrc-sub';
 
 // Netflix Multi-Profile Storage System
 const DEFAULT_PROFILES = [
@@ -249,15 +249,15 @@ function apiUrl(endpoint) {
   return base ? `${base}${clean}` : clean;
 }
 
-// Sandbox Ad-Lock Engine (Blocks Third-Party Streamer Popup Ads Native in Iframe)
-let sandboxLockEnabled = typeof localStorage !== 'undefined' ? localStorage.getItem('hianime_sandbox_lock') !== 'false' : true;
+// Sandbox Ad-Lock Engine (Disabled by default so streaming embeds load without sandbox blocks)
+let sandboxLockEnabled = typeof localStorage !== 'undefined' ? localStorage.getItem('hianime_sandbox_lock') === 'true' : false;
 
 function applySandboxLock() {
   if (!animeEmbedPlayer) return;
   if (sandboxLockEnabled) {
     animeEmbedPlayer.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
   } else {
-    animeEmbedPlayer.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox allow-top-navigation');
+    animeEmbedPlayer.removeAttribute('sandbox');
   }
   updateSandboxLockBtnUI();
 }
@@ -467,7 +467,7 @@ function renderTrendingRail(animeList) {
 
     card.innerHTML = `
       <div class="rail-poster">
-        <img src="${anime.poster}" alt="${anime.title}" loading="lazy" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
+        <img src="${anime.poster}" alt="${anime.title}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
         <div class="rail-badges">
           <span class="badge-sub">SUB</span>
           <span class="badge-dub">DUB</span>
@@ -501,7 +501,7 @@ function renderAnimeGrid(list) {
 
     card.innerHTML = `
       <div class="card-poster">
-        <img src="${anime.poster}" alt="${anime.title}" loading="lazy" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
+        <img src="${anime.poster}" alt="${anime.title}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
         <div class="card-badges">
           <span class="badge-sub">SUB ${anime.subEpisodes || 12}</span>
           <span class="badge-dub">DUB ${anime.dubEpisodes || 12}</span>
@@ -535,7 +535,7 @@ function renderTop10(topList) {
 
     item.innerHTML = `
       <div class="top-10-rank">0${index + 1}</div>
-      <img src="${anime.poster}" alt="${anime.title}" class="top-10-poster" loading="lazy" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
+      <img src="${anime.poster}" alt="${anime.title}" class="top-10-poster" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
       <div class="top-10-info">
         <h4 title="${anime.title}">${anime.title}</h4>
         <div class="top-10-meta">
@@ -571,18 +571,19 @@ function showToast(message, type = 'info') {
   }, 3000);
 }
 
-const SERVER_ROTATION = ['vidlink-sub', 'vidlink-dub', 'multiembed', 'twoembed', 'direct-hls'];
+const SERVER_ROTATION = ['vidsrc-sub', 'vidlink-sub', 'multiembed', 'twoembed', 'vidsrc-dub', 'vidlink-dub', 'consumet-hls'];
 
 function updateServerNotice(serverKey) {
   const noticeEl = document.getElementById('streamActiveServerNotice');
   if (!noticeEl) return;
   const labels = {
+    'vidsrc-sub': 'Playing via <strong>VidSrc Anime (SUB)</strong> — Full Anime Episodes',
+    'vidsrc-dub': 'Playing via <strong>VidSrc Anime (DUB)</strong> — English Dubbed Audio',
     'vidlink-sub': 'Playing via <strong>VidLink Stream (SUB)</strong> — Full Anime Episodes',
     'vidlink-dub': 'Playing via <strong>VidLink Stream (DUB)</strong> — English Dubbed Audio',
-    'multiembed': 'Playing via <strong>MegaCloud Stream</strong> — Fast Multi-Source Gateway',
-    'megacloud': 'Playing via <strong>MegaCloud Stream</strong> — Fast Multi-Source Gateway',
-    'twoembed': 'Playing via <strong>2Embed Stream</strong> — Alternative Gateway',
-    'direct-hls': 'Playing via <strong>Direct HLS Stream</strong> — HTML5 Native Player'
+    'multiembed': 'Playing via <strong>MultiEmbed Anime</strong> — Fast Multi-Source Gateway',
+    'twoembed': 'Playing via <strong>2Embed Anime</strong> — Alternative Gateway',
+    'consumet-hls': 'Playing via <strong>Consumet HLS Player</strong> — Real Master M3U8 Stream'
   };
   noticeEl.innerHTML = labels[serverKey] || 'Playing via Active Stream Gateway.';
 }
@@ -602,14 +603,16 @@ function cycleNextServer() {
 
   if (currentPlayingAnime) {
     const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
-    loadActivePlayer(streamInfo.url, streamInfo.isEmbed);
+    loadActivePlayer(streamInfo.url, streamInfo.isEmbed, streamInfo.isDynamic, streamInfo.fallbackEmbed);
     showToast(`Switched server to ${currentServer.toUpperCase()}`);
   }
 }
 
 function getServerStreamUrl(serverName, anime, epNumber) {
   if (!anime) return { url: '', isEmbed: true };
-  const mal = String(anime.malId || anime.mal_id || '52299');
+  const mal = String(anime.mal_id || anime.malId || '52299');
+  const anilistId = String(anime.anilist_id || anime.idMal || mal);
+  const slug = anime.slug || anime.id || 'anime';
   const ep = (anime.episodes && anime.episodes.find(e => e.number === epNumber)) || 
     (anime.episodes && anime.episodes[0]) || 
     { number: epNumber };
@@ -617,45 +620,72 @@ function getServerStreamUrl(serverName, anime, epNumber) {
   updateServerNotice(serverName);
 
   switch (serverName) {
-    case 'vidlink-sub':
+    case 'vidsrc-sub':
     case 'vidsrc':
+      return { 
+        url: ep.vidsrcSubUrl || `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/0`, 
+        isEmbed: true 
+      };
+    case 'vidsrc-dub':
+    case 'vidsrc-classic':
+      return { 
+        url: ep.vidsrcDubUrl || `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/1`, 
+        isEmbed: true 
+      };
+    case 'vidlink-sub':
     case 'ultra-hd':
       return { 
-        url: ep.vidlinkSubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/sub?fallback=true`, 
+        url: ep.vidlinkSubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/sub`, 
         isEmbed: true 
       };
     case 'vidlink-dub':
-    case 'vidsrc-classic':
     case 'streamwish':
       return { 
-        url: ep.vidlinkDubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/dub?fallback=true`, 
+        url: ep.vidlinkDubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/dub`, 
         isEmbed: true 
       };
     case 'multiembed':
     case 'megacloud':
       return { 
-        url: ep.megaCloudUrl || `https://multiembed.mov/?video_id=${mal}&an=1&ep=${epNumber}`, 
+        url: ep.megaCloudUrl || `https://multiembed.mov/?video_id=${mal}&mal=1&s=1&e=${epNumber}`, 
         isEmbed: true 
       };
     case 'twoembed':
       return { 
-        url: ep.twoEmbedUrl || `https://www.2embed.cc/embed/anime/${mal}/${epNumber}`, 
+        url: ep.twoEmbedUrl || `https://2anime.xyz/embed/${slug}-episode-${epNumber}`, 
         isEmbed: true 
       };
+    case 'consumet-hls':
     case 'direct-hls':
       return { 
-        url: ep.hlsStreamUrl || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 
+        url: apiUrl(`/api/stream/${slug}/${epNumber}`), 
+        fallbackEmbed: `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/0`,
+        isDynamic: true,
         isEmbed: false 
       };
     default:
       return { 
-        url: ep.vidlinkSubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/sub?fallback=true`, 
+        url: ep.vidsrcSubUrl || `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/0`, 
         isEmbed: true 
       };
   }
 }
 
-function loadActivePlayer(sourceUrl, isEmbed = true) {
+async function loadActivePlayer(sourceUrl, isEmbed = true, isDynamic = false, fallbackEmbed = '') {
+  if (isDynamic) {
+    try {
+      const res = await fetch(sourceUrl).then(r => r.json());
+      if (res && res.success && res.streamUrl) {
+        loadActivePlayer(res.streamUrl, false);
+        return;
+      }
+    } catch (err) {
+      console.warn('Dynamic stream resolver failed, switching to embed fallback:', err);
+    }
+    loadActivePlayer(fallbackEmbed || `https://vidlink.pro/anime/52299/1/sub`, true);
+    return;
+  }
+
   if (isEmbed) {
     if (animeVideoPlayer) {
       animeVideoPlayer.pause();
@@ -669,6 +699,8 @@ function loadActivePlayer(sourceUrl, isEmbed = true) {
     if (animeEmbedPlayer) {
       animeEmbedPlayer.style.display = 'block';
       applySandboxLock();
+      animeEmbedPlayer.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write');
+      animeEmbedPlayer.setAttribute('referrerpolicy', 'origin');
       if (animeEmbedPlayer.src !== sourceUrl) {
         animeEmbedPlayer.src = sourceUrl;
       }
@@ -750,7 +782,7 @@ function renderContinueWatching() {
       <div class="continue-card" onclick="openWatchModal('${item.animeId}', ${item.episodeNumber})">
         <button class="continue-card-remove" onclick="event.stopPropagation(); removeWatchHistory('${item.animeId}')" title="Remove from History">✕</button>
         <div class="continue-card-thumb">
-          <img src="${item.cover}" alt="${item.title}" loading="lazy" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
+          <img src="${item.cover}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
           <div class="continue-play-overlay">
             <i data-lucide="play-circle"></i>
           </div>
@@ -828,7 +860,7 @@ async function openWatchModal(animeId, episodeNum = 1) {
 
   // Resolve stream using active server
   const streamInfo = getServerStreamUrl(currentServer, anime, episodeNum);
-  loadActivePlayer(streamInfo.url, streamInfo.isEmbed);
+  loadActivePlayer(streamInfo.url, streamInfo.isEmbed, streamInfo.isDynamic, streamInfo.fallbackEmbed);
 
   // Synchronize server buttons in player
   document.querySelectorAll('.server-pill').forEach(pill => {
@@ -942,7 +974,7 @@ function renderWatchlistDrawer() {
     const card = document.createElement('div');
     card.className = 'watchlist-card';
     card.innerHTML = `
-      <img src="${item.poster}" alt="${item.title}" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
+      <img src="${item.poster}" alt="${item.title}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
       <div class="watchlist-card-info">
         <h4>${item.title}</h4>
         <span style="font-size: 0.75rem; color: var(--accent-gold);">★ ${item.rating}</span>
@@ -976,7 +1008,7 @@ searchInput.addEventListener('input', (e) => {
   } else {
     searchDropdown.innerHTML = matches.map(anime => `
       <div class="search-item" onclick="openWatchModal('${anime.id}', 1); searchDropdown.classList.remove('show');">
-        <img src="${anime.poster}" alt="${anime.title}">
+        <img src="${anime.poster}" alt="${anime.title}" referrerpolicy="no-referrer">
         <div class="search-item-info">
           <h4>${anime.title}</h4>
           <div class="search-item-meta">
@@ -1669,7 +1701,7 @@ function renderScheduleGrid(items) {
   if (!scheduleGrid) return;
   scheduleGrid.innerHTML = items.map(item => `
     <div class="schedule-card" onclick="handleScheduleCardClick('${item.id}', '${item.malId}', '${(item.title || '').replace(/'/g, "\\'")}')">
-      <img src="${item.image}" alt="${item.title}" class="schedule-card-thumb" loading="lazy">
+      <img src="${item.image}" alt="${item.title}" class="schedule-card-thumb" loading="lazy" referrerpolicy="no-referrer">
       <div class="schedule-card-info">
         <span class="schedule-time-badge"><i data-lucide="clock" style="width:12px;height:12px;vertical-align:middle;"></i> ${item.broadcastTime}</span>
         <h4 class="schedule-card-title" title="${item.title}">${item.title}</h4>
@@ -2833,7 +2865,7 @@ function renderSpotlightManagerGrid() {
   if (!spotlightManagerGrid) return;
   spotlightManagerGrid.innerHTML = currentAnimeList.map(a => `
     <div class="spotlight-card ${a.spotlight ? 'featured' : ''}">
-      <img src="${a.poster || a.cover}" alt="${a.title}">
+      <img src="${a.poster || a.cover}" alt="${a.title}" referrerpolicy="no-referrer">
       <div class="spotlight-card-info">
         <h4>${a.title}</h4>
         <button class="spotlight-toggle-btn ${a.spotlight ? 'active' : ''}" onclick="toggleSpotlightStatus('${a.id}')">

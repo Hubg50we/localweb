@@ -1,5 +1,5 @@
-// HiAnime v6.0 Ultra Final Enterprise Service Worker
-const CACHE_NAME = 'hianime-v6-final';
+// HiAnime v7.0 Real Streams Enterprise Service Worker
+const CACHE_NAME = 'hianime-v7-real-streams';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -13,7 +13,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching static app shell for v6.0 Final');
+      console.log('[Service Worker] Caching static app shell for v7.0 Real Streams');
       return cache.addAll(STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );

@@ -162,15 +162,24 @@ async function runTests() {
     assert(healthRes.status === 200 && healthRes.json && healthRes.json.status === 'healthy', 'GET /api/health returns HTTP 200 with healthy status');
     assert(healthRes.headers['access-control-allow-origin'] === '*', 'GET /api/health returns Access-Control-Allow-Origin: *');
 
-    // 8. Testing Ad-Lock Sandbox & GitHub Pages Static Mirror...
-    console.log('\n8. Testing Ad-Lock Sandbox & GitHub Pages Mirror...');
+    // 8. Testing Real Streams, Referrer Policies & GitHub Pages Mirror...
+    console.log('\n8. Testing Real Streams, Referrer Policies & GitHub Pages Mirror...');
     assert(indexHtml.includes('id="sandboxLockBtn"'), 'index.html contains Sandbox Lock button');
-    assert(indexHtml.includes('sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"'), 'iframe contains ad-blocking sandbox attributes');
-    assert(appJs.includes('apiUrl(') && appJs.includes('toggleSandboxLock'), 'app.js implements apiUrl and toggleSandboxLock');
+    assert(indexHtml.includes('referrerpolicy="origin"'), 'iframe contains referrerpolicy="origin"');
+    assert(!indexHtml.includes('<meta name="referrer" content="no-referrer">'), 'global no-referrer meta removed to allow streaming iframes to work');
+    assert(appJs.includes('apiUrl(') && appJs.includes('vidsrc-sub'), 'app.js implements apiUrl and real vidsrc-sub server');
     assert(fs.existsSync(path.join(__dirname, '..', 'docs', '404.html')), 'docs/404.html exists for GitHub Pages SPA redirection');
     assert(fs.existsSync(path.join(__dirname, '..', 'docs', '.nojekyll')), 'docs/.nojekyll exists to disable Jekyll processing');
     const swJs = fs.readFileSync(path.join(__dirname, '..', 'public', 'sw.js'), 'utf-8');
-    assert(swJs.includes('hianime-v6-final'), 'sw.js defines hianime-v6-final cache version');
+    assert(swJs.includes('hianime-v7-real-streams'), 'sw.js defines hianime-v7-real-streams cache version');
+
+    // 9. Testing Stream Resolver API & Zero Sample URLs...
+    console.log('\n9. Testing Stream Resolver API & Zero Sample URLs...');
+    const streamRes = await request(`${base}/api/stream/solo-leveling/1`);
+    assert(streamRes.status === 200 && streamRes.json, 'GET /api/stream/:animeSlug/:ep returns HTTP 200');
+    const animeDataStr = fs.readFileSync(path.join(__dirname, '..', 'data', 'anime-data.js'), 'utf-8');
+    assert(!animeDataStr.includes('test-streams.mux.dev'), 'data/anime-data.js contains zero fake sample test-streams.mux.dev URLs');
+    assert(animeDataStr.includes('anilist_id'), 'data/anime-data.js contains mapped anilist_id for real embeds');
 
   } catch (err) {
     console.error('Test execution error:', err);

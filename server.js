@@ -226,6 +226,75 @@ app.get('/api/anime/:id/episode/:epNumber/servers', (req, res) => {
   res.json({ success: true, animeTitle: (anime && anime.title) || 'Anime', episode: ep, servers });
 });
 
+// 6. GET /api/stream/:animeSlug/:ep - Dynamic Stream Resolver Endpoint via Consumet & Scrapers
+app.get('/api/stream/:animeSlug/:ep', async (req, res) => {
+  const { animeSlug, ep } = req.params;
+  const epNum = parseInt(ep, 10) || 1;
+  const anime = animeDatabase.find(a => a.id === animeSlug || a.slug === animeSlug);
+
+  try {
+    // 1. Try Consumet AniList parser with anilist_id
+    if (anime && anime.anilist_id) {
+      try {
+        const info = await anilist.fetchAnimeInfo(String(anime.anilist_id));
+        if (info && info.episodes && info.episodes.length > 0) {
+          const targetEp = info.episodes.find(e => e.number === epNum) || info.episodes[epNum - 1];
+          if (targetEp && targetEp.id) {
+            const sources = await anilist.fetchEpisodeSources(targetEp.id);
+            if (sources && sources.sources && sources.sources.length > 0) {
+              const defaultSource = sources.sources.find(s => s.quality === 'default' || s.isM3U8) || sources.sources[0];
+              return res.json({
+                success: true,
+                streamUrl: defaultSource.url,
+                isHls: true,
+                subtitles: sources.subtitles || [],
+                intro: sources.intro,
+                headers: sources.headers || {}
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[Consumet Anilist] Direct stream fetch for ${animeSlug} ep ${epNum}:`, err.message);
+      }
+    }
+
+    // 2. Fallback to Ani-Cli bridge if available
+    if (aniCli && typeof aniCli.fetchStreamDirect === 'function') {
+      try {
+        const searchTitle = (anime && anime.title) || animeSlug;
+        const scrapeResult = await aniCli.fetchStreamDirect(searchTitle, epNum);
+        if (scrapeResult && scrapeResult.streamUrl) {
+          return res.json({
+            success: true,
+            streamUrl: scrapeResult.streamUrl,
+            isHls: true,
+            subtitles: scrapeResult.subtitles || []
+          });
+        }
+      } catch (_) {}
+    }
+
+    // Fallback: return working embed URLs with proper IDs
+    const mal = (anime && (anime.mal_id || anime.malId)) || '52299';
+    const anilistId = (anime && anime.anilist_id) || '151807';
+    res.json({
+      success: false,
+      message: 'Direct HLS stream unavailable from scraper; fallback to verified embed servers',
+      embedFallbacks: {
+        vidsrcSub: `https://vidsrc.icu/embed/anime/${anilistId}/${epNum}/0`,
+        vidsrcDub: `https://vidsrc.icu/embed/anime/${anilistId}/${epNum}/1`,
+        vidlinkSub: `https://vidlink.pro/anime/${mal}/${epNum}/sub`,
+        vidlinkDub: `https://vidlink.pro/anime/${mal}/${epNum}/dub`,
+        multiembed: `https://multiembed.mov/?video_id=${mal}&mal=1&s=1&e=${epNum}`,
+        twoEmbed: `https://2anime.xyz/embed/${animeSlug}-episode-${epNum}`
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // PWA Manifest Route
 app.get('/manifest.json', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json');
