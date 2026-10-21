@@ -1,5 +1,5 @@
-// HiAnime v5.6 Ultra Enterprise Service Worker
-const CACHE_NAME = 'hianime-v5-enterprise-v6';
+// HiAnime v6.0 Ultra Final Enterprise Service Worker
+const CACHE_NAME = 'hianime-v6-final';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -9,24 +9,24 @@ const STATIC_ASSETS = [
   './data/anime-data.js'
 ];
 
-// Install: Cache critical static shell
+// Install: Cache critical static shell and skip waiting immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching static app shell');
+      console.log('[Service Worker] Caching static app shell for v6.0 Final');
       return cache.addAll(STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activate: Clean up older cache versions
+// Activate: Clean up older cache versions and take immediate control of all clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((name) => {
           if (name !== CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache:', name);
+            console.log('[Service Worker] Purging old cache version:', name);
             return caches.delete(name);
           }
         })

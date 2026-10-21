@@ -20,11 +20,26 @@ const PORT = process.env.PORT || 3000;
 // Initialize Consumet providers
 const anilist = new META.Anilist();
 
-app.use(cors());
+// Full Permissive CORS Middleware for GitHub Pages & Third-Party Frontends
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
-// Health Check for Render & Cloud Monitors
-app.get('/health', (req, res) => {
+// Health Check for Render, Cloud Monitors & Keep-Alive pings
+app.get(['/health', '/api/health'], (req, res) => {
   res.status(200).json({
     status: 'healthy',
     uptime: Math.round(process.uptime()),

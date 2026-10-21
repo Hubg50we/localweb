@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HiAnime.to - Redirecting...</title>
+  <script>
+    // Preserve query parameters, path segments, and hashes when redirected by GitHub Pages 404
+    (function() {
+      var search = window.location.search;
+      var hash = window.location.hash;
+      var path = window.location.pathname;
+      // Strip repo prefix if present
+      var repo = '/localweb';
+      if (path.indexOf(repo) === 0) {
+        path = path.substring(repo.length);
+      }
+      var target = './index.html' + (path && path !== '/' ? '?p=' + encodeURIComponent(path) + (search ? '&' + search.substring(1) : '') : search) + hash;
+      window.location.replace(target);
+    })();
+  </script>
+</head>
+<body style="background: #0b0c10; color: #ffbade; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+  <h2 style="font-size: 1.5rem; margin-bottom: 8px;">HiAnime.to</h2>
+  <p style="color: #94a3b8; font-size: 0.95rem;">Redirecting to anime player...</p>
+</body>
+</html>

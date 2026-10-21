@@ -2,7 +2,7 @@
   "name": "HiAnime - Watch Anime Online Free",
   "short_name": "HiAnime",
   "description": "Stream high-speed anime in HD with zero ads, live airing schedules, and multi-server playback.",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#11101a",

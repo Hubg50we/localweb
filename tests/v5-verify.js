@@ -156,6 +156,22 @@ async function runTests() {
       assert(deleteRes.status === 200 && deleteRes.json && deleteRes.json.success, 'DELETE /api/admin/anime/:id removes test show cleanly');
     }
 
+    // 7. Testing Render Health & CORS Headers...
+    console.log('\n7. Testing Render Health & CORS Headers...');
+    const healthRes = await request(`${base}/api/health`);
+    assert(healthRes.status === 200 && healthRes.json && healthRes.json.status === 'healthy', 'GET /api/health returns HTTP 200 with healthy status');
+    assert(healthRes.headers['access-control-allow-origin'] === '*', 'GET /api/health returns Access-Control-Allow-Origin: *');
+
+    // 8. Testing Ad-Lock Sandbox & GitHub Pages Static Mirror...
+    console.log('\n8. Testing Ad-Lock Sandbox & GitHub Pages Mirror...');
+    assert(indexHtml.includes('id="sandboxLockBtn"'), 'index.html contains Sandbox Lock button');
+    assert(indexHtml.includes('sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"'), 'iframe contains ad-blocking sandbox attributes');
+    assert(appJs.includes('apiUrl(') && appJs.includes('toggleSandboxLock'), 'app.js implements apiUrl and toggleSandboxLock');
+    assert(fs.existsSync(path.join(__dirname, '..', 'docs', '404.html')), 'docs/404.html exists for GitHub Pages SPA redirection');
+    assert(fs.existsSync(path.join(__dirname, '..', 'docs', '.nojekyll')), 'docs/.nojekyll exists to disable Jekyll processing');
+    const swJs = fs.readFileSync(path.join(__dirname, '..', 'public', 'sw.js'), 'utf-8');
+    assert(swJs.includes('hianime-v6-final'), 'sw.js defines hianime-v6-final cache version');
+
   } catch (err) {
     console.error('Test execution error:', err);
     failCount++;

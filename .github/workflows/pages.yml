@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -15,30 +15,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  deploy-pages:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Pages
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
-
-      - name: Prepare Static Web Directory
-        run: |
-          mkdir -p _site
-          cp -r public/* _site/
-          mkdir -p _site/data
-          cp data/anime-data.js _site/data/
 
       - name: Upload GitHub Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '_site'
+          path: './docs'
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages (Actions Environment)
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Deploy to gh-pages Branch (Branch Fallback)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          keep_files: false
+          force_orphan: true

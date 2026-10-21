@@ -6,9 +6,9 @@
   <meta name="referrer" content="no-referrer">
   <title>HiAnime.to - Watch Anime Online Free in HD</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ffbade'/><text y='70' x='50' text-anchor='middle' font-family='sans-serif' font-size='60' font-weight='bold' fill='%230f172a'>Hi</text></svg>">
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#ffbade">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="./style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
@@ -358,7 +358,7 @@
         <!-- Video Screen Left -->
         <div class="video-wrapper">
           <div class="video-inner">
-            <iframe id="animeEmbedPlayer" src="" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="origin"></iframe>
+            <iframe id="animeEmbedPlayer" src="" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"></iframe>
             <video id="animeVideoPlayer" controls autoplay preload="auto" style="display:none;">
               <source src="" type="video/mp4">
               Your browser does not support the video tag.
@@ -396,6 +396,7 @@
               <button class="player-tool-btn" id="theaterModeBtn" title="Theater Mode (T)"><i data-lucide="maximize-2"></i> Theater</button>
               <button class="player-tool-btn party-btn-highlight" id="watchPartyBtn" title="Start Watch Party Room"><i data-lucide="users"></i> Watch Party</button>
               <button class="player-tool-btn pip-btn-highlight" id="miniPlayerBtn" title="Picture-in-Picture Mini-Player"><i data-lucide="picture-in-picture-2"></i> Mini-Player</button>
+              <button class="player-tool-btn sandbox-lock-btn active" id="sandboxLockBtn" title="Block Third-Party Popup Ads (Iframe Sandbox)"><i data-lucide="shield-check"></i> Ad Lock: <span id="sandboxLockStateText">ON</span></button>
               <label class="toggle-control">
                 <input type="checkbox" id="autoNextCheck" checked>
                 <span>Auto Next</span>
@@ -599,6 +600,7 @@
           <button class="admin-tab-btn active" data-tab="catalog"><i data-lucide="film"></i> Manage Catalog</button>
           <button class="admin-tab-btn" data-tab="add"><i data-lucide="plus-circle"></i> Add / Edit Anime</button>
           <button class="admin-tab-btn" data-tab="spotlight"><i data-lucide="sparkles"></i> Spotlight Manager</button>
+          <button class="admin-tab-btn" data-tab="settings"><i data-lucide="server"></i> Backend Bridge</button>
         </div>
 
         <!-- Tab 1: Catalog Table -->
@@ -693,6 +695,25 @@
             <p>Click "Toggle Spotlight" on any show below to feature it on the homepage carousel (recommended 4-6 titles).</p>
           </div>
           <div class="spotlight-manager-grid" id="spotlightManagerGrid"></div>
+        </div>
+
+        <!-- Tab 4: Backend Bridge Settings -->
+        <div class="admin-tab-content" id="adminTabSettings">
+          <div class="spotlight-manager-header">
+            <p>Configure and monitor your production Render Node.js backend bridge for GitHub Pages and remote client sync.</p>
+          </div>
+          <div class="admin-form" style="max-width: 650px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+              <label>Render Backend API URL</label>
+              <input type="url" id="adminBackendUrlInput" placeholder="https://hianime-localweb.onrender.com" value="">
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">Leave blank or use default for automatic local/Render detection.</small>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="tool-btn-highlight" id="adminSaveBackendUrlBtn"><i data-lucide="save"></i> Save URL</button>
+              <button type="button" class="btn-secondary" id="adminPingBackendBtn"><i data-lucide="activity"></i> Ping /api/health</button>
+              <span id="adminBackendStatusPill" style="padding: 6px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; background: var(--bg-surface); color: var(--text-muted);">Status: Unknown</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -841,7 +862,7 @@
     </div>
   </footer>
 
-  <script src="data/anime-data.js?v=5.6"></script>
-  <script src="app.js?v=5.6"></script>
+  <script src="./data/anime-data.js?v=6.0"></script>
+  <script src="./app.js?v=6.0"></script>
 </body>
 </html>

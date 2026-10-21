@@ -1,0 +1,23 @@
+name: Render Backend Keep-Alive Ping
+
+on:
+  schedule:
+    # Run every 14 minutes to prevent Render free-tier spin down (Render sleeps after 15 minutes of inactivity)
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend Health Endpoint
+        run: |
+          RENDER_URL="https://hianime-localweb.onrender.com/api/health"
+          echo "Pinging Render backend at: $RENDER_URL"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 "$RENDER_URL" || echo "failed")
+          echo "Response HTTP Status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "Render backend is awake, healthy, and operational."
+          else
+            echo "Render backend is waking up or starting from cold boot (Status: $HTTP_STATUS)."
+          fi

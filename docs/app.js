@@ -229,14 +229,80 @@ let currentAnimeBookmarks = [];
 let paletteSelectedIndex = 0;
 let paletteItemsList = [];
 
-// Register Offline Service Worker (v5.2 PWA)
+// Dynamic API Base Configuration (Bridging GitHub Pages to Render Backend)
+function getApiBase() {
+  if (typeof window === 'undefined') return '';
+  const host = window.location.hostname || '';
+  if (host === 'localhost' || host === '127.0.0.1' || host.includes('onrender.com') || window.location.protocol === 'file:') {
+    return '';
+  }
+  const configured = localStorage.getItem('hianime_render_api_url');
+  if (configured && configured.trim()) {
+    return configured.trim().replace(/\/+$/, '');
+  }
+  return 'https://hianime-localweb.onrender.com';
+}
+
+function apiUrl(endpoint) {
+  const base = getApiBase();
+  const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return base ? `${base}${clean}` : clean;
+}
+
+// Sandbox Ad-Lock Engine (Blocks Third-Party Streamer Popup Ads Native in Iframe)
+let sandboxLockEnabled = typeof localStorage !== 'undefined' ? localStorage.getItem('hianime_sandbox_lock') !== 'false' : true;
+
+function applySandboxLock() {
+  if (!animeEmbedPlayer) return;
+  if (sandboxLockEnabled) {
+    animeEmbedPlayer.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
+  } else {
+    animeEmbedPlayer.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox allow-top-navigation');
+  }
+  updateSandboxLockBtnUI();
+}
+
+function updateSandboxLockBtnUI() {
+  const btn = document.getElementById('sandboxLockBtn');
+  const txt = document.getElementById('sandboxLockStateText');
+  if (!btn) return;
+  if (sandboxLockEnabled) {
+    btn.classList.add('active');
+    btn.classList.remove('inactive');
+    if (txt) txt.textContent = 'ON';
+    btn.title = 'Block Third-Party Popup Ads (Iframe Sandbox: ON)';
+  } else {
+    btn.classList.remove('active');
+    btn.classList.add('inactive');
+    if (txt) txt.textContent = 'OFF';
+    btn.title = 'Relaxed Permissions (Iframe Sandbox: OFF)';
+  }
+}
+
+function toggleSandboxLock() {
+  sandboxLockEnabled = !sandboxLockEnabled;
+  localStorage.setItem('hianime_sandbox_lock', String(sandboxLockEnabled));
+  applySandboxLock();
+  showToast(sandboxLockEnabled ? 'Sandbox Ad Lock: ON (Popup Ads Blocked)' : 'Sandbox Ad Lock: OFF (Relaxed Permissions)', sandboxLockEnabled ? 'success' : 'info');
+}
+
+// Register Offline Service Worker (v6.0 Final PWA) with auto-update & controllerchange refresh
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      console.log('[PWA] Service Worker controller changed, refreshing to load newest assets...');
+      window.location.reload();
+    }
+  });
+
   window.addEventListener('load', () => {
-    const swPath = window.location.pathname.endsWith('/')
-      ? `${window.location.pathname}sw.js`
-      : `${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1)}sw.js`;
-    navigator.serviceWorker.register(swPath).then((reg) => {
-      console.log('[PWA] Service Worker registered with scope:', reg.scope);
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      console.log('[PWA] Service Worker v6.0 registered with scope:', reg.scope);
+      // Immediately check for updates
+      reg.update();
+      window.addEventListener('focus', () => reg.update());
     }).catch((err) => {
       console.warn('[PWA] Service Worker registration failed:', err);
     });
@@ -257,6 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMiniPlayerListeners();
   setupProfileListeners();
   checkUrlPartyParams();
+  updateSandboxLockBtnUI();
   if (window.lucide) lucide.createIcons();
 });
 
@@ -264,7 +331,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadData() {
   const isStatic = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
   
-  if (isStatic && typeof animeDatabase !== 'undefined' && animeDatabase.length > 0) {
+  // Render immediately with local dataset so there is zero initial delay
+  if (typeof animeDatabase !== 'undefined' && animeDatabase.length > 0) {
     currentAnimeList = animeDatabase;
     currentSpotlights = animeDatabase.filter(a => a.spotlight);
     const top10Data = [...currentAnimeList].sort((a, b) => parseFloat(b.rating || 0) - parseFloat(a.rating || 0)).slice(0, 10);
@@ -273,29 +341,31 @@ async function loadData() {
     renderAnimeGrid(currentAnimeList);
     renderTop10(top10Data);
     if (window.lucide) lucide.createIcons();
-    return;
+    if (isStatic && !localStorage.getItem('hianime_render_api_url')) {
+      return;
+    }
   }
 
   try {
     const [animeRes, spotlightRes, top10Res] = await Promise.all([
-      fetch('/api/anime').then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null).catch(() => null),
-      fetch('/api/anime/spotlight').then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null).catch(() => null),
-      fetch('/api/anime/top10').then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null).catch(() => null)
+      fetch(apiUrl('/api/anime')).then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null).catch(() => null),
+      fetch(apiUrl('/api/anime/spotlight')).then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null).catch(() => null),
+      fetch(apiUrl('/api/anime/top10')).then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null).catch(() => null)
     ]);
 
-    if (animeRes && animeRes.success) {
+    if (animeRes && animeRes.success && animeRes.data) {
       currentAnimeList = animeRes.data;
     } else if (typeof animeDatabase !== 'undefined') {
       currentAnimeList = animeDatabase;
     }
 
-    if (spotlightRes && spotlightRes.success) {
+    if (spotlightRes && spotlightRes.success && spotlightRes.data) {
       currentSpotlights = spotlightRes.data;
     } else {
       currentSpotlights = currentAnimeList.filter(a => a.spotlight);
     }
 
-    const top10Data = (top10Res && top10Res.success) ? top10Res.data : [...currentAnimeList].sort((a, b) => b.rating - a.rating).slice(0, 10);
+    const top10Data = (top10Res && top10Res.success && top10Res.data) ? top10Res.data : [...currentAnimeList].sort((a, b) => b.rating - a.rating).slice(0, 10);
 
     renderSpotlight(currentSpotlights);
     renderTrendingRail(currentAnimeList);
@@ -597,6 +667,7 @@ function loadActivePlayer(sourceUrl, isEmbed = true) {
     }
     if (animeEmbedPlayer) {
       animeEmbedPlayer.style.display = 'block';
+      applySandboxLock();
       if (animeEmbedPlayer.src !== sourceUrl) {
         animeEmbedPlayer.src = sourceUrl;
       }
@@ -1360,6 +1431,12 @@ function setupEventListeners() {
     });
   }
 
+  const sandboxLockBtn = document.getElementById('sandboxLockBtn');
+  if (sandboxLockBtn) {
+    updateSandboxLockBtnUI();
+    sandboxLockBtn.addEventListener('click', toggleSandboxLock);
+  }
+
   // Auto-Next Checkbox Persistence
   if (autoNextCheck) {
     const autoNextSaved = localStorage.getItem('hianime_auto_next');
@@ -1560,25 +1637,13 @@ async function initSchedule() {
 
 async function loadSchedule(day) {
   if (!scheduleGrid) return;
-  const isStatic = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
-
-  if (!isStatic) {
-    scheduleGrid.innerHTML = `
-      <div style="grid-column: 1/-1; padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
-        <i data-lucide="loader" class="spin" style="margin-bottom:8px; display:inline-block;"></i>
-        <div>Loading live broadcast schedule for ${day.toUpperCase()}...</div>
-      </div>
-    `;
-    if (window.lucide) lucide.createIcons();
-
-    try {
-      const res = await fetch(`/api/live/schedule?day=${encodeURIComponent(day)}`).then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null);
-      if (res && res.success && res.data && res.data.length > 0) {
-        renderScheduleGrid(res.data);
-        return;
-      }
-    } catch (_) {}
-  }
+  try {
+    const res = await fetch(apiUrl(`/api/live/schedule?day=${encodeURIComponent(day)}`)).then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : null);
+    if (res && res.success && res.data && res.data.length > 0) {
+      renderScheduleGrid(res.data);
+      return;
+    }
+  } catch (_) {}
 
   // Instant responsive fallback for static hosts and offline mode
   if (currentAnimeList && currentAnimeList.length > 0) {
@@ -1910,13 +1975,57 @@ function closeWatchParty() {
   if (watchPartyDrawer) watchPartyDrawer.classList.remove('open');
 }
 
+let partyBroadcastChannel = null;
+try {
+  if (typeof BroadcastChannel !== 'undefined') {
+    partyBroadcastChannel = new BroadcastChannel('hianime_watch_party_sync');
+    partyBroadcastChannel.onmessage = (event) => {
+      const data = event.data;
+      if (data && data.room === activePartyRoom) {
+        if (data.type === 'message' && data.message) {
+          const cached = getLocalPartyMessages(activePartyRoom);
+          if (!cached.find(m => m.id === data.message.id || (m.timestamp === data.message.timestamp && m.text === data.message.text))) {
+            cached.push(data.message);
+            saveLocalPartyMessages(activePartyRoom, cached);
+            renderPartyMessages(cached);
+          }
+        } else if (data.type === 'sync' && data.animeId && data.episodeNum) {
+          if (currentPlayingAnime && data.animeId === currentPlayingAnime.id && data.episodeNum !== currentPlayingEpisode) {
+            currentPlayingEpisode = data.episodeNum;
+            const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
+            loadActivePlayer(streamInfo.url, streamInfo.isEmbed);
+            modalEpCrumb.textContent = `Episode ${currentPlayingEpisode}`;
+          }
+        }
+      }
+    };
+  }
+} catch (e) {
+  console.warn('BroadcastChannel error:', e);
+}
+
+function getLocalPartyMessages(roomId) {
+  try {
+    return JSON.parse(localStorage.getItem(`hianime_party_msgs_${roomId}`) || '[]');
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveLocalPartyMessages(roomId, msgs) {
+  try {
+    localStorage.setItem(`hianime_party_msgs_${roomId}`, JSON.stringify(msgs.slice(-50)));
+  } catch (_) {}
+}
+
 async function pollPartyMessages() {
   if (!activePartyRoom || !partyChatMessages) return;
+  const animeId = currentPlayingAnime ? currentPlayingAnime.id : '';
+  const ep = currentPlayingEpisode || 1;
   try {
-    const animeId = currentPlayingAnime ? currentPlayingAnime.id : '';
-    const ep = currentPlayingEpisode || 1;
-    const res = await fetch(`/api/party/${encodeURIComponent(activePartyRoom)}/messages?anime=${encodeURIComponent(animeId)}&ep=${ep}`).then(r => r.json());
+    const res = await fetch(apiUrl(`/api/party/${encodeURIComponent(activePartyRoom)}/messages?anime=${encodeURIComponent(animeId)}&ep=${ep}`)).then(r => r.json());
     if (res && res.success && res.messages) {
+      saveLocalPartyMessages(activePartyRoom, res.messages);
       renderPartyMessages(res.messages);
 
       if (res.animeId && res.episodeNum && currentPlayingAnime) {
@@ -1927,9 +2036,14 @@ async function pollPartyMessages() {
           modalEpCrumb.textContent = `Episode ${currentPlayingEpisode}`;
         }
       }
+      return;
     }
   } catch (err) {
-    console.warn('Watch party poll error:', err);
+    // Offline / Backend sleep fallback: read from localStorage
+    const localMsgs = getLocalPartyMessages(activePartyRoom);
+    if (localMsgs && localMsgs.length > 0) {
+      renderPartyMessages(localMsgs);
+    }
   }
 }
 
@@ -1954,8 +2068,32 @@ async function sendPartyChatMessage(e) {
   if (!text) return;
 
   const user = (commentUsername && commentUsername.value.trim()) || 'OtakuFan';
+  const newMsg = {
+    id: 'msg_' + Date.now(),
+    user: user,
+    text: text,
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    type: 'chat'
+  };
+
+  // Immediate local & BroadcastChannel broadcast
+  const localMsgs = getLocalPartyMessages(activePartyRoom);
+  localMsgs.push(newMsg);
+  saveLocalPartyMessages(activePartyRoom, localMsgs);
+  renderPartyMessages(localMsgs);
+  partyChatInput.value = '';
+
+  if (partyBroadcastChannel) {
+    partyBroadcastChannel.postMessage({
+      room: activePartyRoom,
+      type: 'message',
+      message: newMsg
+    });
+  }
+
+  // Sync to Render backend if reachable
   try {
-    await fetch(`/api/party/${encodeURIComponent(activePartyRoom)}/messages`, {
+    await fetch(apiUrl(`/api/party/${encodeURIComponent(activePartyRoom)}/messages`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1967,16 +2105,22 @@ async function sendPartyChatMessage(e) {
         type: 'chat'
       })
     });
-    partyChatInput.value = '';
-    pollPartyMessages();
   } catch (err) {
-    console.warn('Party message send failed:', err);
+    console.warn('Backend party sync skipped (offline/fallback mode active):', err);
   }
 }
 
 function syncWatchPartyEpisode(animeId, episodeNum) {
   if (!activePartyRoom) return;
-  fetch(`/api/party/${encodeURIComponent(activePartyRoom)}/messages`, {
+  if (partyBroadcastChannel) {
+    partyBroadcastChannel.postMessage({
+      room: activePartyRoom,
+      type: 'sync',
+      animeId: animeId,
+      episodeNum: episodeNum
+    });
+  }
+  fetch(apiUrl(`/api/party/${encodeURIComponent(activePartyRoom)}/messages`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -2457,9 +2601,61 @@ function setupAdminListeners() {
       } else if (targetTab === 'spotlight') {
         document.getElementById('adminTabSpotlight').classList.add('active');
         renderSpotlightManagerGrid();
+      } else if (targetTab === 'settings') {
+        const settingsTab = document.getElementById('adminTabSettings');
+        if (settingsTab) settingsTab.classList.add('active');
       }
     });
   });
+
+  const adminBackendUrlInput = document.getElementById('adminBackendUrlInput');
+  const adminSaveBackendUrlBtn = document.getElementById('adminSaveBackendUrlBtn');
+  const adminPingBackendBtn = document.getElementById('adminPingBackendBtn');
+  const adminBackendStatusPill = document.getElementById('adminBackendStatusPill');
+
+  if (adminBackendUrlInput) {
+    adminBackendUrlInput.value = localStorage.getItem('hianime_render_api_url') || (window.location.hostname.includes('github.io') ? 'https://hianime-localweb.onrender.com' : '');
+  }
+
+  if (adminSaveBackendUrlBtn && adminBackendUrlInput) {
+    adminSaveBackendUrlBtn.addEventListener('click', () => {
+      const val = adminBackendUrlInput.value.trim();
+      if (val) {
+        localStorage.setItem('hianime_render_api_url', val);
+        showToast('Render Backend URL updated', 'success');
+      } else {
+        localStorage.removeItem('hianime_render_api_url');
+        showToast('Reset to automatic Backend URL detection', 'info');
+      }
+    });
+  }
+
+  if (adminPingBackendBtn && adminBackendStatusPill) {
+    adminPingBackendBtn.addEventListener('click', async () => {
+      adminBackendStatusPill.textContent = 'Pinging...';
+      adminBackendStatusPill.style.background = 'rgba(255, 190, 11, 0.2)';
+      adminBackendStatusPill.style.color = 'var(--accent-gold)';
+      try {
+        const pingUrl = apiUrl('/api/health');
+        const res = await fetch(pingUrl).then(r => r.json());
+        if (res && res.status === 'healthy') {
+          adminBackendStatusPill.textContent = `Online: HTTP 200 (${res.catalogSize} shows, up ${res.uptime}s)`;
+          adminBackendStatusPill.style.background = 'rgba(16, 185, 129, 0.2)';
+          adminBackendStatusPill.style.color = '#10b981';
+          showToast('Backend online & healthy!', 'success');
+        } else {
+          adminBackendStatusPill.textContent = 'Degraded Response';
+          adminBackendStatusPill.style.background = 'rgba(239, 68, 68, 0.2)';
+          adminBackendStatusPill.style.color = '#ef4444';
+        }
+      } catch (err) {
+        adminBackendStatusPill.textContent = 'Offline / Cold Start (Retrying)';
+        adminBackendStatusPill.style.background = 'rgba(239, 68, 68, 0.2)';
+        adminBackendStatusPill.style.color = '#ef4444';
+        showToast('Failed to reach backend: ' + err.message, 'error');
+      }
+    });
+  }
 
   if (adminAddNewBtn) {
     adminAddNewBtn.addEventListener('click', () => {
@@ -2592,7 +2788,7 @@ async function handleAdminFormSubmit(e) {
   };
 
   try {
-    const url = id ? `/api/admin/anime/${encodeURIComponent(id)}` : '/api/admin/anime';
+    const url = id ? apiUrl(`/api/admin/anime/${encodeURIComponent(id)}`) : apiUrl('/api/admin/anime');
     const method = id ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
@@ -2620,7 +2816,7 @@ async function deleteAdminShow(id) {
   if (!confirm(`Are you sure you want to permanently delete "${anime ? anime.title : id}"?`)) return;
 
   try {
-    const res = await fetch(`/api/admin/anime/${encodeURIComponent(id)}`, { method: 'DELETE' }).then(r => r.json());
+    const res = await fetch(apiUrl(`/api/admin/anime/${encodeURIComponent(id)}`), { method: 'DELETE' }).then(r => r.json());
     if (res && res.success) {
       await loadData();
       renderAdminCatalogTable();
@@ -2654,7 +2850,7 @@ async function toggleSpotlightStatus(id) {
 
   const newStatus = !anime.spotlight;
   try {
-    const res = await fetch(`/api/admin/anime/${encodeURIComponent(id)}`, {
+    const res = await fetch(apiUrl(`/api/admin/anime/${encodeURIComponent(id)}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ spotlight: newStatus })

@@ -1857,6 +1857,17 @@ body.high-contrast {
   color: #fff;
 }
 
+.sandbox-lock-btn.active {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+}
+.sandbox-lock-btn.inactive {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
 /* Lights Off Overlay */
 .lights-off-overlay {
   position: fixed;
