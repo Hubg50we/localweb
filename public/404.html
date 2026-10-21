@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="./style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <!-- Lucide Icons & HLS.js for ani-cli live streams -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -431,7 +431,7 @@
                 <i data-lucide="zap"></i> Auto-Select Server
               </button>
               <label class="toggle-control auto-failover-toggle" title="Automatically switch server if stream fails or hangs">
-                <input type="checkbox" id="autoFailoverCheck" checked>
+                <input type="checkbox" id="autoFailoverCheck">
                 <span><i data-lucide="zap"></i> Auto-Failover</span>
               </label>
               <button type="button" class="stream-quick-switch-btn" id="streamQuickSwitchBtn" title="Stream Not Working? Try Next Server">
@@ -477,7 +477,6 @@
                 <span>Auto Play</span>
               </label>
             </div>
-          </div>
 
           <!-- Direct Skips, Speed, Subtitle & Quality Toolbar -->
           <div class="player-direct-toolbar" id="playerDirectToolbar">
@@ -708,6 +707,16 @@
               </div>
             </div>
           </div>
+
+          <!-- Similar Anime Rail in Player Modal -->
+          <div class="similar-anime-rail-wrap" id="similarAnimeRailWrap">
+            <div class="similar-rail-header">
+              <h4><i data-lucide="compass" style="color:var(--accent-pink);width:18px;height:18px;vertical-align:middle;"></i> Similar Anime You Might Like</h4>
+            </div>
+            <div class="similar-anime-rail" id="similarAnimeRail">
+              <!-- Injected by JavaScript -->
+            </div>
+          </div>
         </div>
 
         <!-- Episodes Selector Sidebar Right -->
@@ -721,16 +730,6 @@
           <div class="episodes-list" id="episodesList">
             <!-- Injected by JavaScript -->
           </div>
-        </div>
-      </div>
-
-      <!-- Similar Anime Rail in Player Modal -->
-      <div class="similar-anime-rail-wrap" id="similarAnimeRailWrap">
-        <div class="similar-rail-header">
-          <h4><i data-lucide="compass" style="color:var(--accent-cyan);width:18px;height:18px;vertical-align:middle;"></i> Similar Anime You Might Like</h4>
-        </div>
-        <div class="similar-anime-rail" id="similarAnimeRail">
-          <!-- Injected by JavaScript -->
         </div>
       </div>
     </div>

@@ -282,12 +282,12 @@ app.get('/api/stream/:animeSlug/:ep', async (req, res) => {
       success: false,
       message: 'Direct HLS stream unavailable from scraper; fallback to verified embed servers',
       embedFallbacks: {
-        vidsrcSub: `https://vidsrc.icu/embed/anime/${anilistId}/${epNum}/0`,
-        vidsrcDub: `https://vidsrc.icu/embed/anime/${anilistId}/${epNum}/1`,
+        vidsrcSub: `https://vidlink.pro/anime/${mal}/${epNum}/sub`,
+        vidsrcDub: `https://vidlink.pro/anime/${mal}/${epNum}/dub`,
         vidlinkSub: `https://vidlink.pro/anime/${mal}/${epNum}/sub`,
         vidlinkDub: `https://vidlink.pro/anime/${mal}/${epNum}/dub`,
         multiembed: `https://multiembed.mov/?video_id=${mal}&mal=1&s=1&e=${epNum}`,
-        twoEmbed: `https://2anime.xyz/embed/${animeSlug}-episode-${epNum}`
+        twoEmbed: `https://multiembed.mov/?video_id=${mal}&mal=1&s=1&e=${epNum}`
       }
     });
   } catch (err) {

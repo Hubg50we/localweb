@@ -1,29 +1,32 @@
 :root {
-  --bg-primary: #07060b;
-  --bg-secondary: #0d0c15;
-  --bg-tertiary: #141220;
-  --bg-surface: rgba(18, 16, 29, 0.78);
-  --bg-surface-solid: #12101d;
-  --bg-card: rgba(22, 19, 36, 0.85);
-  --bg-card-hover: rgba(30, 26, 50, 0.95);
+  --bg-primary: #201f31;
+  --bg-secondary: #14131a;
+  --bg-tertiary: #2b2a3c;
+  --bg-surface: #2b2a3c;
+  --bg-surface-solid: #201f31;
+  --bg-card: #201f31;
+  --bg-card-hover: #2b2a3c;
   --bg-hover: rgba(255, 255, 255, 0.08);
 
-  /* Next-Gen Cyber-Otaku Palette (Inspired by Kitsune / Sora / Miru) */
-  --accent-primary: #00f0ff;
-  --accent-glow: rgba(0, 240, 255, 0.45);
+  /* Authentic HiAnime.to / HiAnime.at Signature Theme */
+  --accent-primary: #ffbade;
+  --accent-glow: rgba(255, 186, 222, 0.35);
+  --accent-pink: #ffbade;
   --accent-cyan: #00f0ff;
-  --accent-pink: #ff2a85;
+  --accent-sub: #b9e7ff;
+  --accent-dub: #ffbade;
+  --accent-quality: #95d03a;
   --accent-purple: #8b5cf6;
   --accent-gold: #ffd600;
-  --accent-green: #00ff88;
+  --accent-green: #95d03a;
   --accent-orange: #ff6b00;
 
-  --text-main: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
+  --text-main: #ffffff;
+  --text-secondary: #d2d2d3;
+  --text-muted: #aaaaaa;
   --text-dark: #64748b;
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(0, 240, 255, 0.6);
+  --border-focus: rgba(255, 186, 222, 0.6);
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
@@ -70,7 +73,7 @@ body[data-theme="gold"] {
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-primary);
   background-image: 
     radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.07) 0%, transparent 45%),
@@ -460,20 +463,23 @@ button {
   font-weight: 700;
 }
 .badge-quality {
-  background-color: var(--accent-cyan);
+  background-color: #95d03a;
   color: #000;
+  font-weight: 700;
   padding: 2px 8px;
   border-radius: 4px;
 }
 .badge-sub {
-  background-color: var(--accent-green);
-  color: #000;
+  background-color: #b9e7ff;
+  color: #111;
+  font-weight: 700;
   padding: 2px 8px;
   border-radius: 4px;
 }
 .badge-dub {
-  background-color: var(--accent-gold);
-  color: #000;
+  background-color: #ffbade;
+  color: #111;
+  font-weight: 700;
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -502,18 +508,20 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, var(--accent-pink), var(--accent-orange));
-  color: #fff;
+  background: var(--accent-pink);
+  color: #111;
   font-weight: 700;
   font-size: 0.95rem;
   padding: 12px 26px;
   border-radius: 30px;
-  box-shadow: 0 4px 20px rgba(255, 42, 95, 0.4);
+  box-shadow: 0 4px 18px rgba(255, 186, 222, 0.35);
   transition: var(--transition);
 }
 .btn-primary:hover {
+  background: #ffcbe4;
+  color: #000;
   transform: translateY(-2px);
-  box-shadow: 0 6px 26px rgba(255, 42, 95, 0.6);
+  box-shadow: 0 6px 24px rgba(255, 186, 222, 0.5);
 }
 .btn-secondary {
   display: inline-flex;
@@ -1089,18 +1097,27 @@ button {
   color: #fff;
 }
 
+.player-header {
+  position: relative;
+  z-index: 2;
+}
 .player-body {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: 1fr 340px;
   overflow-y: auto;
   max-height: calc(90vh - 70px);
 }
 .video-wrapper {
+  position: relative;
+  z-index: 2;
   padding: 20px;
-  background-color: #0b0b10;
+  background-color: var(--bg-secondary);
 }
 .video-inner {
   position: relative;
+  z-index: 2;
   background-color: #000;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -4274,10 +4291,10 @@ body.reduced-motion *::after {
   inset: -15%;
   background-size: cover;
   background-position: center;
-  filter: blur(70px) saturate(200%);
-  opacity: 0.35;
+  filter: blur(80px) saturate(180%);
+  opacity: 0.18;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
   transition: background-image 0.5s ease-out;
 }
 

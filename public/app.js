@@ -1842,10 +1842,13 @@ function loadStreamingProviders() {
   const custom = localStorage.getItem('hianime_custom_providers');
   if (custom) {
     try {
-      const parsed = JSON.parse(custom);
+      let parsed = JSON.parse(custom);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        streamingProviders = parsed;
-        return;
+        parsed = parsed.filter(p => p && p.urlTemplate && !p.urlTemplate.includes('vidsrc.icu') && !p.urlTemplate.includes('2anime.xyz'));
+        if (parsed.length > 0) {
+          streamingProviders = parsed;
+          return;
+        }
       }
     } catch (_) {}
   }
@@ -2062,7 +2065,7 @@ async function loadActivePlayer(sourceUrl, isEmbed = true, isDynamic = false, fa
       console.warn('Archive stream resolver failed:', err);
     }
     showToast('Archive stream unavailable — switched to backup stream source', 'warning');
-    loadActivePlayer(fallbackEmbed || `https://vidsrc.icu/embed/anime/151807/1/0`, true);
+    loadActivePlayer(fallbackEmbed || `https://vidlink.pro/anime/52299/1/sub`, true);
     return;
   }
 
@@ -2076,7 +2079,7 @@ async function loadActivePlayer(sourceUrl, isEmbed = true, isDynamic = false, fa
     } catch (err) {
       console.warn('Dynamic stream resolver failed, switching to embed fallback:', err);
     }
-    loadActivePlayer(fallbackEmbed || `https://vidsrc.icu/embed/anime/151807/1/0`, true);
+    loadActivePlayer(fallbackEmbed || `https://vidlink.pro/anime/52299/1/sub`, true);
     return;
   }
 
@@ -2103,27 +2106,16 @@ async function loadActivePlayer(sourceUrl, isEmbed = true, isDynamic = false, fa
       animeEmbedPlayer.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write');
       animeEmbedPlayer.setAttribute('referrerpolicy', 'origin');
 
-      // Start 6-second auto-failover monitor
+      // Auto-failover monitor: only triggers on explicit player fatal error
       const autoFailoverBox = document.getElementById('autoFailoverCheck');
-      const isAutoFailover = autoFailoverBox ? autoFailoverBox.checked : true;
+      const isAutoFailover = autoFailoverBox ? autoFailoverBox.checked : false;
       if (isAutoFailover) {
-        failoverTimer = setTimeout(() => {
-          console.warn('[Auto-Failover] Server response timeout reached (3.5s). Cycling to next working server.');
-          cycleNextServer(true);
-        }, 3500);
-
-        animeEmbedPlayer.onload = () => {
-          if (failoverTimer) {
-            clearTimeout(failoverTimer);
-            failoverTimer = null;
-          }
-        };
-
         animeEmbedPlayer.onerror = () => {
           if (failoverTimer) {
             clearTimeout(failoverTimer);
             failoverTimer = null;
           }
+          console.warn('[Auto-Failover] Fatal iframe load error detected. Cycling server.');
           cycleNextServer(true);
         };
       }
