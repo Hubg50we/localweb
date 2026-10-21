@@ -60,6 +60,15 @@
 
       <!-- Navigation Actions -->
       <div class="nav-right">
+        <!-- Otaku XP Rank Pill -->
+        <div class="xp-rank-pill" id="navXpPill" title="Otaku XP Rank & Progression">
+          <span class="xp-level-badge" id="navXpLevel">Lv 1</span>
+          <span class="xp-rank-name" id="navXpRank">Academy Student</span>
+        </div>
+        <button class="nav-action-btn quiz-nav-btn" id="navQuizBtn" title="Play Otaku Trivia Quiz (Win XP!)">
+          <i data-lucide="gamepad-2"></i>
+          <span>Quiz</span>
+        </button>
         <a href="https://github.com/pystardust/ani-cli" target="_blank" class="nav-action-btn anicli-badge" title="Powered by pystardust/ani-cli">
           <i data-lucide="terminal"></i>
           <span>ani-cli</span>
@@ -141,6 +150,8 @@
             </div>
             <div class="user-popover-links">
               <a href="#" id="openWhoWatchingBtn"><i data-lucide="users"></i> Switch Profile (Who's Watching?)</a>
+              <a href="#" id="openAchievementsBtn"><i data-lucide="award"></i> Otaku Achievements (<span id="unlockedBadgesCount">0</span>/6)</a>
+              <a href="#" id="openQuizBtn"><i data-lucide="gamepad-2"></i> Play Otaku Trivia Quiz</a>
               <a href="#" id="openOtakuStatsBtn"><i data-lucide="bar-chart-2"></i> Otaku Wrapped & Stats</a>
               <a href="#" id="openAdminStudioBtn"><i data-lucide="layout-dashboard"></i> Admin CMS Studio</a>
               <a href="#" id="profileWatchlistLink"><i data-lucide="bookmark"></i> Open Watchlist</a>
@@ -271,6 +282,16 @@
           <button class="clear-history-btn" id="clearHistoryBtn"><i data-lucide="trash-2"></i> Clear History</button>
         </div>
         <div class="continue-watching-track" id="continueWatchingTrack">
+          <!-- Injected by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Smart Personalized Recommendations Section -->
+      <section class="anime-section recommended-section" id="recommendedSection" style="display: none; margin-bottom: 28px;">
+        <div class="continue-header">
+          <h2 class="section-title"><i data-lucide="sparkles" class="title-icon" style="color: var(--accent-cyan);"></i> <span id="recommendationHeading">Recommended For You</span></h2>
+        </div>
+        <div class="anime-grid recommendations-grid" id="recommendationsGrid">
           <!-- Injected by JavaScript -->
         </div>
       </section>
@@ -669,6 +690,16 @@
           <div class="episodes-list" id="episodesList">
             <!-- Injected by JavaScript -->
           </div>
+        </div>
+      </div>
+
+      <!-- Similar Anime Rail in Player Modal -->
+      <div class="similar-anime-rail-wrap" id="similarAnimeRailWrap">
+        <div class="similar-rail-header">
+          <h4><i data-lucide="compass" style="color:var(--accent-cyan);width:18px;height:18px;vertical-align:middle;"></i> Similar Anime You Might Like</h4>
+        </div>
+        <div class="similar-anime-rail" id="similarAnimeRail">
+          <!-- Injected by JavaScript -->
         </div>
       </div>
     </div>
@@ -1151,6 +1182,57 @@
     </div>
   </footer>
 
+  
+  <!-- Otaku Achievements Modal -->
+  <div class="player-modal achievements-modal" id="achievementsModal" style="display:none;">
+    <div class="player-overlay" id="achievementsOverlay"></div>
+    <div class="player-container achievements-container">
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2><i data-lucide="award" style="color:var(--accent-cyan);vertical-align:middle;"></i> Otaku Achievements & Badges</h2>
+          <span class="ep-crumb">Unlock Badges by Streaming, Curating, and Dominating Anime</span>
+        </div>
+        <button class="close-modal-btn" id="closeAchievementsBtn" title="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="achievements-body">
+        <div class="xp-hero-card">
+          <div class="xp-hero-top">
+            <span class="xp-level-huge" id="heroLevelText">Level 1</span>
+            <span class="xp-rank-huge" id="heroRankText">Academy Student</span>
+          </div>
+          <div class="xp-progress-bar-wrap">
+            <div class="xp-progress-bar-fill" id="heroXpBarFill" style="width: 0%;"></div>
+          </div>
+          <div class="xp-meta-text" id="heroXpMetaText">0 / 100 XP to Chunin Watcher</div>
+        </div>
+        <div class="achievements-grid" id="achievementsGrid">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Otaku Trivia Minigame Modal -->
+  <div class="player-modal quiz-modal" id="quizModal" style="display:none;">
+    <div class="player-overlay" id="quizOverlay"></div>
+    <div class="player-container quiz-container">
+      <div class="player-header quiz-header">
+        <div class="player-title-info">
+          <h2><i data-lucide="gamepad-2" style="color:var(--accent-pink);vertical-align:middle;"></i> Otaku Trivia Challenge</h2>
+          <span class="ep-crumb">Test Your Anime Knowledge & Earn Otaku XP</span>
+        </div>
+        <div class="quiz-header-stats">
+          <span class="quiz-score-badge"><i data-lucide="zap"></i> Score: <strong id="quizScoreText">0</strong></span>
+          <span class="quiz-streak-badge"><i data-lucide="flame"></i> Streak: <strong id="quizStreakText">x1.0</strong></span>
+        </div>
+        <button class="close-modal-btn" id="closeQuizBtn" title="Exit Quiz"><i data-lucide="x"></i></button>
+      </div>
+      <div class="quiz-body" id="quizBody">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
   <!-- Signature HiAnime Hover Quick-Preview Popover (Qtip) -->
   <div id="animeHoverQtip" class="anime-hover-qtip" role="tooltip"></div>
 
@@ -1165,7 +1247,7 @@
 
   <!-- Plyr HTML5 Player Engine -->
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
-  <script src="./data/anime-data.js?v=13.0"></script>
-  <script src="./app.js?v=13.0"></script>
+  <script src="./data/anime-data.js?v=14.0"></script>
+  <script src="./app.js?v=14.0"></script>
 </body>
 </html>

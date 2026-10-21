@@ -4469,3 +4469,461 @@ html, body {
     padding: 6px 8px;
   }
 }
+
+/* ========================================================
+   v14.0 SMART RECOMMENDATIONS, OTAKU XP & TRIVIA MINIGAME
+   ======================================================== */
+
+/* Neon Match Badge */
+.badge-match {
+  background: rgba(0, 240, 255, 0.22) !important;
+  border: 1px solid var(--accent-cyan, #00f0ff) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 0.72rem !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.45) !important;
+  letter-spacing: 0.3px;
+}
+
+/* Navbar XP Rank Pill */
+.xp-rank-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(25, 25, 40, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 4px 12px 4px 6px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+}
+.xp-rank-pill:hover {
+  border-color: var(--accent-pink, #ff007f);
+  box-shadow: 0 0 16px rgba(255, 0, 127, 0.3);
+  transform: translateY(-1px);
+}
+.xp-level-badge {
+  background: linear-gradient(135deg, var(--accent-pink, #ff007f), var(--accent-cyan, #00f0ff));
+  color: #111;
+  font-weight: 900;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+.xp-rank-name {
+  color: var(--accent-cyan, #00f0ff);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Similar Anime Rail inside Player Modal */
+.similar-anime-rail-wrap {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.similar-rail-header {
+  margin-bottom: 14px;
+}
+.similar-rail-header h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.05rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.similar-anime-rail {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scrollbar-width: thin;
+}
+.similar-card {
+  flex: 0 0 160px;
+  background: var(--bg-surface, #141320);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.25s ease;
+  position: relative;
+}
+.similar-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: var(--accent-cyan, #00f0ff);
+  box-shadow: 0 8px 24px rgba(0, 240, 255, 0.25);
+}
+.similar-card-poster {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  display: block;
+}
+.similar-card-info {
+  padding: 8px 10px;
+}
+.similar-card-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.similar-card-meta {
+  font-size: 0.7rem;
+  color: #a0a0b0;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Otaku Achievements Modal & Showcase */
+.achievements-modal {
+  z-index: 1000;
+}
+.achievements-container {
+  max-width: 720px;
+  width: 95%;
+  background: rgba(18, 18, 30, 0.96);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg, 14px);
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.85), 0 0 30px rgba(0, 240, 255, 0.2);
+}
+.xp-hero-card {
+  background: linear-gradient(135deg, rgba(255, 0, 127, 0.15), rgba(0, 240, 255, 0.15));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md, 10px);
+  padding: 18px 22px;
+  margin-bottom: 22px;
+}
+.xp-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.xp-level-huge {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 16px var(--accent-pink, #ff007f);
+}
+.xp-rank-huge {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-cyan, #00f0ff);
+  letter-spacing: 0.5px;
+}
+.xp-progress-bar-wrap {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.xp-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-pink, #ff007f), var(--accent-cyan, #00f0ff));
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+  box-shadow: 0 0 12px var(--accent-cyan, #00f0ff);
+}
+.xp-meta-text {
+  font-size: 0.78rem;
+  color: #a0a0b0;
+  text-align: right;
+}
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.badge-card {
+  background: rgba(25, 25, 38, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md, 10px);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.25s ease;
+  position: relative;
+}
+.badge-card.unlocked {
+  border-color: rgba(0, 240, 255, 0.4);
+  background: rgba(0, 240, 255, 0.04);
+  box-shadow: 0 4px 18px rgba(0, 240, 255, 0.12);
+}
+.badge-card.locked {
+  opacity: 0.5;
+  filter: grayscale(80%);
+}
+.badge-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan, #00f0ff);
+}
+.badge-card.unlocked .badge-icon-wrap {
+  background: rgba(0, 240, 255, 0.15);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.3);
+}
+.badge-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+}
+.badge-desc {
+  font-size: 0.74rem;
+  color: #a0a0b0;
+  line-height: 1.35;
+}
+.badge-status {
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: auto;
+}
+.badge-card.unlocked .badge-status { color: #00f0ff; }
+.badge-card.locked .badge-status { color: #777; }
+
+/* Interactive Otaku Trivia Minigame Modal */
+.quiz-modal {
+  z-index: 1000;
+}
+.quiz-container {
+  max-width: 680px;
+  width: 95%;
+  background: rgba(18, 18, 30, 0.96);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-lg, 14px);
+  padding: 24px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.9), 0 0 35px rgba(255, 0, 127, 0.25);
+}
+.quiz-header-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+.quiz-score-badge {
+  background: rgba(0, 240, 255, 0.12);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.quiz-streak-badge {
+  background: rgba(255, 0, 127, 0.12);
+  border: 1px solid rgba(255, 0, 127, 0.3);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.quiz-body {
+  margin-top: 18px;
+}
+.quiz-mode-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+.quiz-mode-card {
+  background: rgba(25, 25, 38, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md, 10px);
+  padding: 22px 18px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.quiz-mode-card:hover {
+  border-color: var(--accent-pink, #ff007f);
+  box-shadow: 0 8px 28px rgba(255, 0, 127, 0.25);
+  transform: translateY(-3px);
+}
+.quiz-mode-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 0, 127, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-pink, #ff007f);
+  margin-bottom: 4px;
+}
+.quiz-mode-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+.quiz-mode-desc {
+  font-size: 0.78rem;
+  color: #a0a0b0;
+  line-height: 1.4;
+}
+
+/* Quiz Active Question View */
+.quiz-question-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.quiz-timer-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.quiz-timer-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan, #00f0ff), var(--accent-pink, #ff007f));
+  border-radius: 999px;
+  transition: width 0.1s linear;
+}
+.quiz-poster-wrap {
+  width: 180px;
+  height: 250px;
+  border-radius: var(--radius-md, 10px);
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+}
+.quiz-poster-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 0.2s ease-out;
+}
+.quiz-clues-box {
+  width: 100%;
+  background: rgba(25, 25, 40, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md, 10px);
+  padding: 16px;
+  text-align: center;
+}
+.quiz-masked-synopsis {
+  font-size: 0.88rem;
+  color: #ddd;
+  line-height: 1.5;
+  font-style: italic;
+  margin-bottom: 10px;
+}
+.quiz-clues-meta {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.quiz-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  margin-top: 6px;
+}
+.quiz-option-btn {
+  background: rgba(25, 25, 40, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md, 8px);
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+.quiz-option-btn:hover:not(:disabled) {
+  border-color: var(--accent-cyan, #00f0ff);
+  background: rgba(0, 240, 255, 0.08);
+  transform: translateY(-2px);
+}
+.quiz-option-btn.correct {
+  background: rgba(0, 240, 255, 0.25) !important;
+  border-color: #00f0ff !important;
+  color: #fff !important;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
+}
+.quiz-option-btn.wrong {
+  background: rgba(255, 71, 87, 0.25) !important;
+  border-color: #ff4757 !important;
+  color: #fff !important;
+}
+
+/* Quiz Game Over Summary */
+.quiz-summary-card {
+  text-align: center;
+  padding: 24px;
+}
+.quiz-summary-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.8rem;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.quiz-summary-score {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--accent-cyan, #00f0ff);
+  margin-bottom: 12px;
+  text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+}
+.quiz-summary-xp {
+  font-size: 1rem;
+  color: var(--accent-pink, #ff007f);
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+.quiz-restart-btn {
+  background: var(--accent-primary, #ff007f);
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  padding: 10px 24px;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.92rem;
+  transition: opacity 0.2s;
+}
+.quiz-restart-btn:hover {
+  opacity: 0.9;
+}

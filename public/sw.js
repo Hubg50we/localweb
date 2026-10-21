@@ -1,5 +1,5 @@
-// HiAnime v13.0 Universal Multi-Source Streaming & SFX/Gamepad Service Worker
-const CACHE_NAME = 'hianime-v13-sfx-gamepad';
+// HiAnime v14.0 Smart Discovery & Otaku XP Service Worker
+const CACHE_NAME = 'hianime-v14-discovery';
 const STATIC_ASSETS = [
   './',
   './index.html',

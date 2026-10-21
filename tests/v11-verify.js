@@ -98,14 +98,14 @@ async function testAsync(name, fn) {
   const pubSw = fs.readFileSync(path.join(__dirname, '..', 'public', 'sw.js'), 'utf-8');
   const docsSw = fs.readFileSync(path.join(__dirname, '..', 'docs', 'sw.js'), 'utf-8');
   test('public/sw.js and docs/sw.js define valid service worker cache', () => {
-    assert(pubSw.includes('hianime-v11-multisource') || pubSw.includes('hianime-v13-sfx-gamepad'), 'public/sw.js cache name');
-    assert(docsSw.includes('hianime-v11-multisource') || docsSw.includes('hianime-v13-sfx-gamepad'), 'docs/sw.js cache name');
+    assert(pubSw.includes('hianime-v11-multisource') || pubSw.includes('hianime-v13-sfx-gamepad') || pubSw.includes('hianime-v14-discovery'), 'public/sw.js cache name');
+    assert(docsSw.includes('hianime-v11-multisource') || docsSw.includes('hianime-v13-sfx-gamepad') || docsSw.includes('hianime-v14-discovery'), 'docs/sw.js cache name');
   });
 
   test('public/index.html and docs/index.html bump script versions', () => {
-    assert(pubIndex.includes('?v=11.0') || pubIndex.includes('?v=13.0'), 'public/index.html missing script version');
+    assert(pubIndex.includes('?v=11.0') || pubIndex.includes('?v=13.0') || pubIndex.includes('?v=14.0'), 'public/index.html missing script version');
     const docsIndex = fs.readFileSync(path.join(__dirname, '..', 'docs', 'index.html'), 'utf-8');
-    assert(docsIndex.includes('?v=11.0') || docsIndex.includes('?v=13.0'), 'docs/index.html missing script version');
+    assert(docsIndex.includes('?v=11.0') || docsIndex.includes('?v=13.0') || docsIndex.includes('?v=14.0'), 'docs/index.html missing script version');
   });
 
   console.log('\n5. Testing Server Endpoints on http://localhost:3000...');

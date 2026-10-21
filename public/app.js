@@ -1,4 +1,557 @@
 
+function escapeHtml(str) {
+  if (typeof str !== 'string') return String(str || '');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+
+// ========================================================
+// v14.0 SMART RECOMMENDATIONS, OTAKU XP & TRIVIA MINIGAME
+// ========================================================
+
+// 1. Otaku XP & Leveling Engine
+const XP_RANKS = [
+  { minLv: 1, maxLv: 4, name: 'Academy Student', reqXp: 100 },
+  { minLv: 5, maxLv: 9, name: 'Chunin Watcher', reqXp: 120 },
+  { minLv: 10, maxLv: 19, name: 'Jonin Binger', reqXp: 150 },
+  { minLv: 20, maxLv: 34, name: 'Hashira Critic', reqXp: 200 },
+  { minLv: 35, maxLv: Infinity, name: 'Shadow Monarch', reqXp: 250 }
+];
+
+function getProfileXp() {
+  const profileId = (typeof currentProfileId !== 'undefined' && currentProfileId) || 'default';
+  return safeJsonParse(`hianime_xp_${profileId}`, 0);
+}
+
+function calculateLevelAndRank(xp) {
+  let level = 1;
+  let remainingXp = xp;
+  let currentTier = XP_RANKS[0];
+
+  while (remainingXp >= (currentTier.reqXp || 100)) {
+    remainingXp -= currentTier.reqXp;
+    level++;
+    const tier = XP_RANKS.find(r => level >= r.minLv && level <= r.maxLv);
+    if (tier) currentTier = tier;
+    if (level >= 100) break;
+  }
+
+  const nextTierReq = currentTier.reqXp || 100;
+  return {
+    level,
+    rank: currentTier.name,
+    currentLevelXp: remainingXp,
+    nextLevelReqXp: nextTierReq,
+    progressPct: Math.min(100, Math.round((remainingXp / nextTierReq) * 100))
+  };
+}
+
+function updateXpDisplay() {
+  const xp = getProfileXp();
+  const info = calculateLevelAndRank(xp);
+
+  const navLvl = document.getElementById('navXpLevel');
+  if (navLvl) navLvl.textContent = `Lv ${info.level}`;
+  const navRnk = document.getElementById('navXpRank');
+  if (navRnk) navRnk.textContent = info.rank;
+
+  const totalEl = document.getElementById('userXpTotal');
+  if (totalEl) totalEl.textContent = `${xp} XP`;
+  const rankLabel = document.getElementById('userXpRankLabel');
+  if (rankLabel) rankLabel.textContent = info.rank;
+
+  const heroLvl = document.getElementById('heroLevelText');
+  if (heroLvl) heroLvl.textContent = `Level ${info.level}`;
+  const heroRnk = document.getElementById('heroRankText');
+  if (heroRnk) heroRnk.textContent = info.rank;
+  const heroBar = document.getElementById('heroXpBarFill');
+  if (heroBar) heroBar.style.width = `${info.progressPct}%`;
+  const heroMeta = document.getElementById('heroXpMetaText');
+  if (heroMeta) heroMeta.textContent = `${info.currentLevelXp} / ${info.nextLevelReqXp} XP to next level`;
+
+  updateAchievementsBadgeCount();
+}
+
+function addProfileXp(amount, reason = '') {
+  const profileId = (typeof currentProfileId !== 'undefined' && currentProfileId) || 'default';
+  const oldXp = getProfileXp();
+  const newXp = oldXp + amount;
+  localStorage.setItem(`hianime_xp_${profileId}`, JSON.stringify(newXp));
+
+  const oldInfo = calculateLevelAndRank(oldXp);
+  const newInfo = calculateLevelAndRank(newXp);
+
+  updateXpDisplay();
+
+  if (newInfo.level > oldInfo.level) {
+    soundEngine.playSuccess();
+    showToast(`🎉 LEVEL UP! You reached Level ${newInfo.level}: ${newInfo.rank}!`, 'success', 4000);
+  } else if (reason) {
+    showToast(`+${amount} XP: ${reason}`, 'info', 2000);
+  }
+}
+
+// 2. Otaku Achievements System
+const ACHIEVEMENTS_REGISTRY = [
+  { id: 'first_blood', title: 'First Blood', desc: 'Watch your first anime episode', icon: 'play-circle', xp: 50 },
+  { id: 'night_owl', title: 'Night Owl', desc: 'Toggle Lights-Off theater mode', icon: 'moon', xp: 50 },
+  { id: 'curator', title: 'Master Curator', desc: 'Add 5 anime to your watchlist', icon: 'bookmark', xp: 50 },
+  { id: 'speedrunner', title: 'Speedrunner', desc: 'Skip an intro using AniSkip or +85s', icon: 'fast-forward', xp: 50 },
+  { id: 'binge_master', title: 'Binge Master', desc: 'Stream 10 episodes total', icon: 'tv', xp: 100 },
+  { id: 'quiz_whiz', title: 'Otaku Sage', desc: 'Score 300+ on Otaku Trivia Quiz', icon: 'award', xp: 150 }
+];
+
+function getUnlockedAchievements() {
+  const profileId = (typeof currentProfileId !== 'undefined' && currentProfileId) || 'default';
+  return safeJsonParse(`hianime_achievements_${profileId}`, []);
+}
+
+function unlockAchievement(id) {
+  const badge = ACHIEVEMENTS_REGISTRY.find(b => b.id === id);
+  if (!badge) return;
+  const profileId = (typeof currentProfileId !== 'undefined' && currentProfileId) || 'default';
+  const unlocked = getUnlockedAchievements();
+  if (unlocked.includes(id)) return;
+
+  unlocked.push(id);
+  localStorage.setItem(`hianime_achievements_${profileId}`, JSON.stringify(unlocked));
+  addProfileXp(badge.xp, `Unlocked ${badge.title}`);
+  soundEngine.playSuccess();
+  showToast(`🏆 Achievement Unlocked: ${badge.title}! (+${badge.xp} XP)`, 'success', 4500);
+  updateAchievementsBadgeCount();
+}
+
+function updateAchievementsBadgeCount() {
+  const unlocked = getUnlockedAchievements();
+  const countEl = document.getElementById('unlockedBadgesCount');
+  if (countEl) countEl.textContent = unlocked.length;
+}
+
+function openAchievementsModal() {
+  const modal = document.getElementById('achievementsModal');
+  if (!modal) return;
+  updateXpDisplay();
+
+  const grid = document.getElementById('achievementsGrid');
+  const unlocked = getUnlockedAchievements();
+
+  if (grid) {
+    grid.innerHTML = ACHIEVEMENTS_REGISTRY.map(b => {
+      const isUnlocked = unlocked.includes(b.id);
+      return `
+        <div class="badge-card ${isUnlocked ? 'unlocked' : 'locked'}">
+          <div class="badge-icon-wrap">
+            <i data-lucide="${b.icon}"></i>
+          </div>
+          <div class="badge-title">${escapeHtml(b.title)}</div>
+          <div class="badge-desc">${escapeHtml(b.desc)}</div>
+          <div class="badge-status">${isUnlocked ? '✓ UNLOCKED (+ ' + b.xp + ' XP)' : '🔒 LOCKED (+' + b.xp + ' XP)'}</div>
+        </div>
+      `;
+    }).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: grid });
+  }
+
+  modal.style.display = 'flex';
+  modal.classList.add('active');
+  document.body.classList.add('modal-open');
+  soundEngine.playModalOpen();
+}
+
+function closeAchievementsModal() {
+  const modal = document.getElementById('achievementsModal');
+  if (!modal) return;
+  modal.style.display = 'none';
+  modal.classList.remove('active');
+  document.body.classList.remove('modal-open');
+  soundEngine.playModalClose();
+}
+
+// 3. Smart Recommendation Engine ("Because You Watched...")
+function getRecommendationsForUser() {
+  const list = (currentAnimeList && currentAnimeList.length > 0) ? currentAnimeList :
+    ((typeof animeDatabase !== 'undefined' && Array.isArray(animeDatabase) && animeDatabase.length > 0) ? animeDatabase :
+    ((typeof animeData !== 'undefined' && Array.isArray(animeData)) ? animeData : []));
+  if (!list || list.length === 0) return null;
+
+  const history = (typeof getProfileHistory === 'function' ? getProfileHistory() : []) || [];
+  const watchlist = (typeof getProfileWatchlist === 'function' ? getProfileWatchlist() : []) || [];
+
+  let anchorAnime = null;
+  if (history.length > 0) {
+    const last = history[0];
+    anchorAnime = list.find(a => a.id === last.animeId) || list[0];
+  } else if (watchlist.length > 0) {
+    anchorAnime = list.find(a => a.id === watchlist[0].id) || list[0];
+  } else {
+    anchorAnime = list[0];
+  }
+
+  if (!anchorAnime) return null;
+
+  const anchorGenres = new Set(anchorAnime.genres || ['Action']);
+  const anchorType = anchorAnime.type || 'TV';
+
+  const scored = list
+    .filter(a => a.id !== anchorAnime.id)
+    .map(a => {
+      let score = 0;
+      const genres = a.genres || [];
+      genres.forEach(g => {
+        if (anchorGenres.has(g)) score += 3;
+      });
+      if (parseFloat(a.rating) >= 8.5) score += 2;
+      if (a.type === anchorType) score += 1;
+
+      const matchPct = Math.min(99, Math.max(78, Math.round(76 + score * 2.8)));
+      return { anime: a, score, matchPct };
+    });
+
+  scored.sort((a, b) => b.score - a.score);
+  return {
+    anchor: anchorAnime,
+    recommendations: scored.slice(0, 8)
+  };
+}
+
+function renderRecommendationsRow() {
+  const recData = getRecommendationsForUser();
+  const recSection = document.getElementById('recommendedSection');
+  const heading = document.getElementById('recommendationHeading');
+  const grid = document.getElementById('recommendationsGrid');
+
+  if (!recSection || !grid || !recData || !Array.isArray(recData.recommendations) || recData.recommendations.length === 0) {
+    if (recSection) recSection.style.display = 'none';
+    return;
+  }
+
+  if (heading) {
+    heading.textContent = `Recommended For You — Because You Watched ${recData.anchor.title}`;
+  }
+
+  grid.innerHTML = recData.recommendations.map(({ anime, matchPct }, idx) => {
+    return `
+      <div class="anime-card" data-id="${anime.id}" style="--card-index:${idx};">
+        <div class="poster-wrapper">
+          <img src="${anime.poster}" alt="${escapeHtml(anime.title)}" loading="lazy" referrerpolicy="no-referrer">
+          <span class="badge-match" style="position:absolute;top:8px;left:8px;z-index:2;">${matchPct}% Match</span>
+          <div class="play-hover-overlay"><i data-lucide="play" class="hover-play-icon"></i></div>
+          <span class="badge-sub" style="position:absolute;bottom:8px;left:8px;">SUB ${anime.subEpisodes || 12}</span>
+          <span class="badge-rating" style="position:absolute;bottom:8px;right:8px;">★ ${anime.rating}</span>
+        </div>
+        <div class="card-info">
+          <h4 class="card-title">${escapeHtml(anime.title)}</h4>
+          <div class="card-meta">
+            <span>${anime.type || 'TV'}</span>
+            <span>${(anime.genres || [])[0] || 'Anime'}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (typeof lucide !== 'undefined') lucide.createIcons({ root: grid });
+  recSection.style.display = 'block';
+
+  // Wire clicks
+  grid.querySelectorAll('.anime-card').forEach(c => {
+    c.onclick = () => {
+      soundEngine.playClick();
+      openWatchModal(c.dataset.id, 1);
+    };
+  });
+}
+
+function renderSimilarAnimeRail(anime) {
+  const railWrap = document.getElementById('similarAnimeRailWrap');
+  const rail = document.getElementById('similarAnimeRail');
+  if (!railWrap || !rail || !anime) return;
+
+  const list = (currentAnimeList && currentAnimeList.length > 0) ? currentAnimeList :
+    ((typeof animeDatabase !== 'undefined' && Array.isArray(animeDatabase) && animeDatabase.length > 0) ? animeDatabase :
+    ((typeof animeData !== 'undefined' && Array.isArray(animeData)) ? animeData : []));
+  const anchorGenres = new Set(anime.genres || ['Action']);
+
+  const similar = list
+    .filter(a => a.id !== anime.id)
+    .map(a => {
+      let score = 0;
+      (a.genres || []).forEach(g => {
+        if (anchorGenres.has(g)) score += 3;
+      });
+      if (parseFloat(a.rating) >= 8.5) score += 2;
+      return { a, score };
+    })
+    .sort((x, y) => y.score - x.score)
+    .slice(0, 6);
+
+  if (similar.length === 0) {
+    railWrap.style.display = 'none';
+    return;
+  }
+
+  railWrap.style.display = 'block';
+  rail.innerHTML = similar.map(({ a }) => `
+    <div class="similar-card" data-id="${a.id}">
+      <img src="${a.poster}" alt="${escapeHtml(a.title)}" class="similar-card-poster" loading="lazy" referrerpolicy="no-referrer">
+      <div class="similar-card-info">
+        <div class="similar-card-title">${escapeHtml(a.title)}</div>
+        <div class="similar-card-meta">
+          <span>★ ${a.rating}</span>
+          <span>${a.type || 'TV'}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  rail.querySelectorAll('.similar-card').forEach(card => {
+    card.onclick = () => {
+      soundEngine.playClick();
+      openWatchModal(card.dataset.id, 1);
+    };
+  });
+}
+
+// 4. Interactive "Guess the Anime" Trivia Minigame
+class OtakuTriviaEngine {
+  constructor() {
+    this.modal = null;
+    this.body = null;
+    this.score = 0;
+    this.streak = 1.0;
+    this.currentRound = 0;
+    this.totalRounds = 5;
+    this.timer = null;
+    this.timeLeft = 10;
+    this.activeQuestion = null;
+  }
+  init() {
+    this.modal = document.getElementById('quizModal');
+    this.body = document.getElementById('quizBody');
+  }
+  open() {
+    this.init();
+    if (!this.modal) return;
+    this.modal.style.display = 'flex';
+    this.modal.classList.add('active');
+    document.body.classList.add('modal-open');
+    soundEngine.playModalOpen();
+    this.renderModeSelect();
+  }
+  close() {
+    if (this.timer) clearInterval(this.timer);
+    if (!this.modal) return;
+    this.modal.style.display = 'none';
+    this.modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+    soundEngine.playModalClose();
+  }
+  renderModeSelect() {
+    if (!this.body) return;
+    this.score = 0;
+    this.streak = 1.0;
+    this.updateStats();
+
+    this.body.innerHTML = `
+      <div style="text-align:center;margin-bottom:14px;">
+        <h3 style="color:#fff;font-size:1.15rem;margin-bottom:6px;">Select Challenge Mode</h3>
+        <p style="color:#a0a0b0;font-size:0.84rem;">Earn Otaku XP and climb the ranks from Academy Student to Shadow Monarch!</p>
+      </div>
+      <div class="quiz-mode-select">
+        <div class="quiz-mode-card" id="quizModePosterBtn">
+          <div class="quiz-mode-icon"><i data-lucide="eye"></i></div>
+          <div class="quiz-mode-title">Blurred Poster Challenge</div>
+          <div class="quiz-mode-desc">Guess the anime as the blurry cover artwork slowly sharpens. Faster answers score higher!</div>
+        </div>
+        <div class="quiz-mode-card" id="quizModeSynopsisBtn">
+          <div class="quiz-mode-icon"><i data-lucide="file-text"></i></div>
+          <div class="quiz-mode-title">Synopsis & Clues Challenge</div>
+          <div class="quiz-mode-desc">Decipher masked plot summaries, genre clues, and character archetypes to find the match.</div>
+        </div>
+      </div>
+    `;
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: this.body });
+
+    const btn1 = document.getElementById('quizModePosterBtn');
+    if (btn1) btn1.onclick = () => { soundEngine.playClick(); this.start('poster'); };
+    const btn2 = document.getElementById('quizModeSynopsisBtn');
+    if (btn2) btn2.onclick = () => { soundEngine.playClick(); this.start('synopsis'); };
+  }
+  start(mode) {
+    this.mode = mode;
+    this.score = 0;
+    this.streak = 1.0;
+    this.currentRound = 0;
+    this.nextQuestion();
+  }
+  updateStats() {
+    const sc = document.getElementById('quizScoreText');
+    if (sc) sc.textContent = this.score;
+    const st = document.getElementById('quizStreakText');
+    if (st) st.textContent = `x${this.streak.toFixed(1)}`;
+  }
+  nextQuestion() {
+    if (this.currentRound >= this.totalRounds) {
+      this.finishGame();
+      return;
+    }
+    this.currentRound++;
+    const list = (currentAnimeList || []).filter(a => a.poster && a.title);
+    if (list.length < 4) return;
+
+    // Pick 1 random correct and 3 distractors
+    const shuffled = [...list].sort(() => 0.5 - Math.random());
+    const correct = shuffled[0];
+    const options = shuffled.slice(0, 4).sort(() => 0.5 - Math.random());
+
+    this.activeQuestion = { correct, options };
+    this.timeLeft = 10;
+    this.renderQuestion();
+  }
+  renderQuestion() {
+    if (!this.body) return;
+    const { correct, options } = this.activeQuestion;
+
+    if (this.mode === 'poster') {
+      this.body.innerHTML = `
+        <div class="quiz-question-box">
+          <div style="font-size:0.8rem;color:#888;">Round ${this.currentRound} of ${this.totalRounds} • Blurred Poster Challenge</div>
+          <div class="quiz-timer-bar-wrap">
+            <div class="quiz-timer-bar-fill" id="quizTimerBar" style="width:100%;"></div>
+          </div>
+          <div class="quiz-poster-wrap">
+            <img src="${correct.poster}" alt="Mystery Anime" id="quizPosterImg" class="quiz-poster-img" style="filter: blur(24px);" referrerpolicy="no-referrer">
+          </div>
+          <div class="quiz-options-grid" id="quizOptionsGrid">
+            ${options.map((opt, i) => `
+              <button type="button" class="quiz-option-btn" data-id="${opt.id}">
+                <span style="color:var(--accent-cyan);margin-right:6px;">[${['A', 'B', 'C', 'D'][i]}]</span> ${escapeHtml(opt.title)}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else {
+      const masked = (correct.synopsis || correct.description || 'Action packed story')
+        .replace(new RegExp(correct.title.split(' ')[0], 'gi'), '[???]');
+      this.body.innerHTML = `
+        <div class="quiz-question-box">
+          <div style="font-size:0.8rem;color:#888;">Round ${this.currentRound} of ${this.totalRounds} • Synopsis Clues Challenge</div>
+          <div class="quiz-timer-bar-wrap">
+            <div class="quiz-timer-bar-fill" id="quizTimerBar" style="width:100%;"></div>
+          </div>
+          <div class="quiz-clues-box">
+            <div class="quiz-masked-synopsis">"${escapeHtml(masked)}"</div>
+            <div class="quiz-clues-meta">
+              <span class="badge-sub">★ ${correct.rating}</span>
+              <span class="badge-dub">${correct.type || 'TV'}</span>
+              ${(correct.genres || []).slice(0, 3).map(g => `<span class="qtip-genre-tag">${g}</span>`).join('')}
+            </div>
+          </div>
+          <div class="quiz-options-grid" id="quizOptionsGrid">
+            ${options.map((opt, i) => `
+              <button type="button" class="quiz-option-btn" data-id="${opt.id}">
+                <span style="color:var(--accent-cyan);margin-right:6px;">[${['A', 'B', 'C', 'D'][i]}]</span> ${escapeHtml(opt.title)}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    this.startTimer();
+    this.wireOptions();
+  }
+  startTimer() {
+    if (this.timer) clearInterval(this.timer);
+    const start = performance.now();
+    const duration = 10000;
+
+    this.timer = setInterval(() => {
+      const elapsed = performance.now() - start;
+      const progress = Math.max(0, 1 - elapsed / duration);
+      this.timeLeft = Math.max(0, 10 * progress);
+
+      const bar = document.getElementById('quizTimerBar');
+      if (bar) bar.style.width = `${progress * 100}%`;
+
+      if (this.mode === 'poster') {
+        const img = document.getElementById('quizPosterImg');
+        if (img) img.style.filter = `blur(${Math.max(0, 24 * progress)}px)`;
+      }
+
+      if (elapsed >= duration) {
+        clearInterval(this.timer);
+        this.handleAnswer(null);
+      }
+    }, 100);
+  }
+  wireOptions() {
+    const grid = document.getElementById('quizOptionsGrid');
+    if (!grid) return;
+    grid.querySelectorAll('.quiz-option-btn').forEach(btn => {
+      btn.onclick = () => {
+        if (this.timer) clearInterval(this.timer);
+        this.handleAnswer(btn.dataset.id, btn);
+      };
+    });
+  }
+  handleAnswer(selectedId, selectedBtn) {
+    const { correct } = this.activeQuestion;
+    const isCorrect = selectedId === correct.id;
+
+    // Reveal poster immediately
+    const img = document.getElementById('quizPosterImg');
+    if (img) img.style.filter = 'blur(0px)';
+
+    const grid = document.getElementById('quizOptionsGrid');
+    if (grid) {
+      grid.querySelectorAll('.quiz-option-btn').forEach(btn => {
+        btn.disabled = true;
+        if (btn.dataset.id === correct.id) btn.classList.add('correct');
+        else if (btn === selectedBtn) btn.classList.add('wrong');
+      });
+    }
+
+    if (isCorrect) {
+      soundEngine.playSuccess();
+      const points = Math.round(100 * (this.timeLeft / 10) * this.streak);
+      this.score += points;
+      this.streak = Math.min(2.5, this.streak + 0.3);
+      showToast(`Correct! +${points} pts (Streak: x${this.streak.toFixed(1)})`, 'success', 1500);
+    } else {
+      soundEngine.playAlert();
+      this.streak = 1.0;
+      showToast(`Wrong! The answer was ${correct.title}`, 'warning', 1800);
+    }
+    this.updateStats();
+
+    setTimeout(() => this.nextQuestion(), 1600);
+  }
+  finishGame() {
+    if (!this.body) return;
+    const bonusXp = Math.max(30, Math.round(this.score / 4));
+    addProfileXp(bonusXp, 'Otaku Quiz Reward');
+
+    if (this.score >= 300) {
+      unlockAchievement('quiz_whiz');
+    }
+
+    this.body.innerHTML = `
+      <div class="quiz-summary-card">
+        <div class="quiz-summary-title">Challenge Complete!</div>
+        <div class="quiz-summary-score">${this.score} PTS</div>
+        <div class="quiz-summary-xp">Awarded +${bonusXp} Otaku XP!</div>
+        <button type="button" class="quiz-restart-btn" id="quizPlayAgainBtn">Play Again</button>
+      </div>
+    `;
+    const btn = document.getElementById('quizPlayAgainBtn');
+    if (btn) btn.onclick = () => this.renderModeSelect();
+  }
+}
+const otakuQuiz = new OtakuTriviaEngine();
+
+
 // HTML5 Gamepad API & 2D Spatial Focus Manager
 class GamepadSpatialNavigation {
   constructor() {
@@ -811,6 +1364,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initProfileSystem();
   initThemeEngine();
   updateWatchlistBadge();
+  if (watchlist && watchlist.length >= 5) unlockAchievement('curator');
   renderContinueWatching();
   setupEventListeners();
   setupPaletteListeners();
@@ -827,7 +1381,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateSandboxLockBtnUI();
   if (window.lucide) lucide.createIcons();
 
+  
+  // v14.0 UI Wiring & Initializations
+  updateXpDisplay();
+  renderRecommendationsRow();
+
+  const navQuiz = document.getElementById('navQuizBtn');
+  if (navQuiz) navQuiz.onclick = () => otakuQuiz.open();
+
+  const popQuiz = document.getElementById('openQuizBtn');
+  if (popQuiz) popQuiz.onclick = (e) => { e.preventDefault(); otakuQuiz.open(); };
+
+  const closeQuiz = document.getElementById('closeQuizBtn');
+  if (closeQuiz) closeQuiz.onclick = () => otakuQuiz.close();
+
+  const popAchieve = document.getElementById('openAchievementsBtn');
+  if (popAchieve) popAchieve.onclick = (e) => { e.preventDefault(); openAchievementsModal(); };
+
+  const navXpPill = document.getElementById('navXpPill');
+  if (navXpPill) navXpPill.onclick = () => openAchievementsModal();
+
+  const closeAchieve = document.getElementById('closeAchievementsBtn');
+  if (closeAchieve) closeAchieve.onclick = () => closeAchievementsModal();
+  const achieveOverlay = document.getElementById('achievementsOverlay');
+  if (achieveOverlay) achieveOverlay.onclick = () => closeAchievementsModal();
+  const quizOverlay = document.getElementById('quizOverlay');
+  if (quizOverlay) quizOverlay.onclick = () => otakuQuiz.close();
+
   await loadData();
+  renderRecommendationsRow();
   await initSchedule();
 });
 
@@ -847,6 +1429,7 @@ async function loadData() {
     renderTrendingRail(currentAnimeList);
     renderAnimeGrid(currentAnimeList);
     renderTop10(top10Data);
+    renderRecommendationsRow();
     if (window.lucide) lucide.createIcons();
     if (isStatic && !localStorage.getItem('hianime_render_api_url')) {
       return;
@@ -2397,7 +2980,7 @@ async function openWatchModal(animeId, episodeNum = 1) {
   playerModal.classList.add('active');
   document.body.classList.add('modal-open');
   soundEngine.playModalOpen();
-  if (anime) updateAmbientCinemaGlow(anime.banner || anime.poster);
+  if (anime) { updateAmbientCinemaGlow(anime.banner || anime.poster); renderSimilarAnimeRail(anime); unlockAchievement('first_blood'); }
   document.body.style.overflow = 'hidden';
   if (window.lucide) lucide.createIcons();
 }
