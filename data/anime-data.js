@@ -232,9 +232,9 @@ const animeDatabase = [
     "anilist_id": 151807,
     "slug": "solo-leveling",
     "trailer": {
-      "id": "HkIKAnwLZCw",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/HkIKAnwLZCw?autoplay=0&rel=0"
+      "title": "Solo Leveling - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -749,9 +749,9 @@ const animeDatabase = [
     "anilist_id": 145064,
     "slug": "jujutsu-kaisen-s2",
     "trailer": {
-      "id": "O6qVieflwqs",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/O6qVieflwqs?autoplay=0&rel=0"
+      "title": "Jujutsu Kaisen Season 2 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -1351,9 +1351,9 @@ const animeDatabase = [
     "anilist_id": 154587,
     "slug": "frieren",
     "trailer": {
-      "id": "tR8YH0G67Rk",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/tR8YH0G67Rk?autoplay=0&rel=0"
+      "title": "Frieren: Beyond Journey's End - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -1613,9 +1613,9 @@ const animeDatabase = [
     "anilist_id": 166240,
     "slug": "demon-slayer-s4",
     "trailer": {
-      "id": "7w5Vfjozzb8",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/7w5Vfjozzb8?autoplay=0&rel=0"
+      "title": "Demon Slayer: Hashira Training Arc - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -1942,9 +1942,9 @@ const animeDatabase = [
     "anilist_id": 127230,
     "slug": "chainsaw-man",
     "trailer": {
-      "id": "v4yLeNt-kCU",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/v4yLeNt-kCU?autoplay=0&rel=0"
+      "title": "Chainsaw Man - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -21023,9 +21023,9 @@ const animeDatabase = [
     "anilist_id": 21,
     "slug": "one-piece",
     "trailer": {
-      "id": "MCb13lbK6W8",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/MCb13lbK6W8?autoplay=0&rel=0"
+      "title": "One Piece - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -21625,9 +21625,9 @@ const animeDatabase = [
     "anilist_id": 110277,
     "slug": "attack-on-titan-final",
     "trailer": {
-      "id": "MUCN-JwUvbY",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/MUCN-JwUvbY?autoplay=0&rel=0"
+      "title": "Attack on Titan: The Final Season - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -22193,9 +22193,9 @@ const animeDatabase = [
     "anilist_id": 116674,
     "slug": "bleach-tybw",
     "trailer": {
-      "id": "fzR82oXbjnY",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/fzR82oXbjnY?autoplay=0&rel=0"
+      "title": "Bleach: Thousand-Year Blood War - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -22522,9 +22522,9 @@ const animeDatabase = [
     "anilist_id": 141014,
     "slug": "spy-x-family",
     "trailer": {
-      "id": "eP2FlJtfwL8",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/eP2FlJtfwL8?autoplay=0&rel=0"
+      "title": "Spy x Family Season 2 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -22851,9 +22851,9 @@ const animeDatabase = [
     "anilist_id": 153288,
     "slug": "kaiju-no-8",
     "trailer": {
-      "id": "7n_mFVPeApw",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/7n_mFVPeApw?autoplay=0&rel=0"
+      "title": "Kaiju No. 8 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -23385,9 +23385,9 @@ const animeDatabase = [
     "anilist_id": 136430,
     "slug": "vinland-saga",
     "trailer": {
-      "id": "6pX93dXfH9s",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/6pX93dXfH9s?autoplay=0&rel=0"
+      "title": "Vinland Saga Season 2 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -23732,9 +23732,9 @@ const animeDatabase = [
     "anilist_id": 150672,
     "slug": "oshi-no-ko",
     "trailer": {
-      "id": "gKWEUJ4r5do",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/gKWEUJ4r5do?autoplay=0&rel=0"
+      "title": "Oshi no Ko Season 2 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -24063,9 +24063,9 @@ const animeDatabase = [
     "anilist_id": 171018,
     "slug": "dandadan",
     "trailer": {
-      "id": "rJo1MnsuxyY",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/rJo1MnsuxyY?autoplay=0&rel=0"
+      "title": "Dandadan - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -24597,9 +24597,9 @@ const animeDatabase = [
     "anilist_id": 153518,
     "slug": "delicious-in-dungeon",
     "trailer": {
-      "id": "RtpYObV4c1Y",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/RtpYObV4c1Y?autoplay=0&rel=0"
+      "title": "Delicious in Dungeon - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -24942,9 +24942,9 @@ const animeDatabase = [
     "anilist_id": 163270,
     "slug": "wind-breaker",
     "trailer": {
-      "id": "k5qM1PoLmUc",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/k5qM1PoLmUc?autoplay=0&rel=0"
+      "title": "Wind Breaker - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -25698,9 +25698,9 @@ const animeDatabase = [
     "anilist_id": 1535,
     "slug": "death-note",
     "trailer": {
-      "id": "NlJZ-YgAt-c",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/NlJZ-YgAt-c?autoplay=0&rel=0"
+      "title": "Death Note - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -26913,9 +26913,9 @@ const animeDatabase = [
     "anilist_id": 5114,
     "slug": "fullmetal-alchemist-brotherhood",
     "trailer": {
-      "id": "1ac3_YdSSy0",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/1ac3_YdSSy0?autoplay=0&rel=0"
+      "title": "Fullmetal Alchemist: Brotherhood - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -27447,9 +27447,9 @@ const animeDatabase = [
     "anilist_id": 9253,
     "slug": "steins-gate",
     "trailer": {
-      "id": "27OZc-ku6is",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/27OZc-ku6is?autoplay=0&rel=0"
+      "title": "Steins;Gate - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -30089,9 +30089,9 @@ const animeDatabase = [
     "anilist_id": 11061,
     "slug": "hunter-x-hunter-2011",
     "trailer": {
-      "id": "d6kBeJjTGnY",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/d6kBeJjTGnY?autoplay=0&rel=0"
+      "title": "Hunter x Hunter (2011) - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -38715,9 +38715,9 @@ const animeDatabase = [
     "anilist_id": 1735,
     "slug": "naruto-shippuden",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Naruto: Shippuden - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -39196,9 +39196,9 @@ const animeDatabase = [
     "anilist_id": 163139,
     "slug": "my-hero-academia-s7",
     "trailer": {
-      "id": "T5HMoxJRhRY",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/T5HMoxJRhRY?autoplay=0&rel=0"
+      "title": "My Hero Academia Season 7 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -39526,9 +39526,9 @@ const animeDatabase = [
     "anilist_id": 140439,
     "slug": "mob-psycho-100-iii",
     "trailer": {
-      "id": "Ah7lTT-NKMw",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/Ah7lTT-NKMw?autoplay=0&rel=0"
+      "title": "Mob Psycho 100 III - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -40075,9 +40075,9 @@ const animeDatabase = [
     "anilist_id": 20464,
     "slug": "haikyuu",
     "trailer": {
-      "id": "9kLRkH9zC5k",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/9kLRkH9zC5k?autoplay=0&rel=0"
+      "title": "Haikyu!! - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -40370,9 +40370,9 @@ const animeDatabase = [
     "anilist_id": 120377,
     "slug": "cyberpunk-edgerunners",
     "trailer": {
-      "id": "ax5YUmkWf_Y",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/ax5YUmkWf_Y?autoplay=0&rel=0"
+      "title": "Cyberpunk: Edgerunners - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -40698,9 +40698,9 @@ const animeDatabase = [
     "anilist_id": 130003,
     "slug": "bocchi-the-rock",
     "trailer": {
-      "id": "SyMMZF5zNW4",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/SyMMZF5zNW4?autoplay=0&rel=0"
+      "title": "Bocchi the Rock! - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -41230,9 +41230,9 @@ const animeDatabase = [
     "anilist_id": 137822,
     "slug": "blue-lock",
     "trailer": {
-      "id": "5YBL7fx94RU",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/5YBL7fx94RU?autoplay=0&rel=0"
+      "title": "Blue Lock - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -41578,9 +41578,9 @@ const animeDatabase = [
     "anilist_id": 128893,
     "slug": "hells-paradise",
     "trailer": {
-      "id": "t1Sqcxti0Ls",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/t1Sqcxti0Ls?autoplay=0&rel=0"
+      "title": "Hell's Paradise - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -42112,9 +42112,9 @@ const animeDatabase = [
     "anilist_id": 146065,
     "slug": "mushoku-tensei-s2",
     "trailer": {
-      "id": "ts5NGoDI1V0",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/ts5NGoDI1V0?autoplay=0&rel=0"
+      "title": "Mushoku Tensei: Jobless Reincarnation Season 2 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -42510,9 +42510,9 @@ const animeDatabase = [
     "anilist_id": 163134,
     "slug": "rezero-s3",
     "trailer": {
-      "id": "qMJNdQFPaHk",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/qMJNdQFPaHk?autoplay=0&rel=0"
+      "title": "Re:Zero - Starting Life in Another World Season 3 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -42856,9 +42856,9 @@ const animeDatabase = [
     "anilist_id": 146066,
     "slug": "classroom-of-the-elite-s3",
     "trailer": {
-      "id": "Z11Ozjk0ufY",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/Z11Ozjk0ufY?autoplay=0&rel=0"
+      "title": "Classroom of the Elite Season 3 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -45872,9 +45872,9 @@ const animeDatabase = [
     "anilist_id": 97940,
     "slug": "black-clover",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Black Clover - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -46351,9 +46351,9 @@ const animeDatabase = [
     "anilist_id": 1575,
     "slug": "code-geass",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Code Geass: Lelouch of the Rebellion - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -46848,9 +46848,9 @@ const animeDatabase = [
     "anilist_id": 30,
     "slug": "neon-genesis-evangelion",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Neon Genesis Evangelion - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -47343,9 +47343,9 @@ const animeDatabase = [
     "anilist_id": 1,
     "slug": "cowboy-bebop",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Cowboy Bebop - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -47823,9 +47823,9 @@ const animeDatabase = [
     "anilist_id": 11757,
     "slug": "sword-art-online",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Sword Art Online - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -48097,9 +48097,9 @@ const animeDatabase = [
     "anilist_id": 133844,
     "slug": "overlord-iv",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Overlord IV - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -48338,9 +48338,9 @@ const animeDatabase = [
     "anilist_id": 136804,
     "slug": "konosuba-s3",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "KonoSuba: God's Blessing on This Wonderful World! 3 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -48612,9 +48612,9 @@ const animeDatabase = [
     "anilist_id": 21827,
     "slug": "violet-evergarden",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Violet Evergarden - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -49329,9 +49329,9 @@ const animeDatabase = [
     "anilist_id": 102883,
     "slug": "jojo-golden-wind",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "JoJo's Bizarre Adventure: Golden Wind - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -49589,9 +49589,9 @@ const animeDatabase = [
     "anilist_id": 114745,
     "slug": "made-in-abyss-s2",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Made in Abyss: The Golden City of the Scorching Sun - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -49849,9 +49849,9 @@ const animeDatabase = [
     "anilist_id": 20605,
     "slug": "tokyo-ghoul",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Tokyo Ghoul - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -50362,9 +50362,9 @@ const animeDatabase = [
     "anilist_id": 2001,
     "slug": "gurren-lagann",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Gurren Lagann - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -50841,9 +50841,9 @@ const animeDatabase = [
     "anilist_id": 10087,
     "slug": "fate-zero",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Fate/Zero - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -51320,9 +51320,9 @@ const animeDatabase = [
     "anilist_id": 19603,
     "slug": "fate-stay-night-ubw",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Fate/stay night: Unlimited Blade Works - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -52633,9 +52633,9 @@ const animeDatabase = [
     "anilist_id": 19,
     "slug": "monster",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Monster - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -56104,9 +56104,9 @@ const animeDatabase = [
     "anilist_id": 918,
     "slug": "gintama",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Gintama - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -56567,9 +56567,9 @@ const animeDatabase = [
     "anilist_id": 156822,
     "slug": "tensura-s3",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "That Time I Got Reincarnated as a Slime Season 3 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -56995,9 +56995,9 @@ const animeDatabase = [
     "anilist_id": 153518,
     "slug": "dr-stone-new-world",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Dr. STONE: New World - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -57253,9 +57253,9 @@ const animeDatabase = [
     "anilist_id": 161964,
     "slug": "eminence-in-shadow-s2",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "The Eminence in Shadow Season 2 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -57324,9 +57324,9 @@ const animeDatabase = [
     "anilist_id": 21519,
     "slug": "your-name",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Your Name. - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -57395,9 +57395,9 @@ const animeDatabase = [
     "anilist_id": 199,
     "slug": "spirited-away",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Spirited Away - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -57465,9 +57465,9 @@ const animeDatabase = [
     "anilist_id": 20954,
     "slug": "a-silent-voice",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "A Silent Voice - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -57535,9 +57535,9 @@ const animeDatabase = [
     "anilist_id": 131586,
     "slug": "jujutsu-kaisen-0",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Jujutsu Kaisen 0 - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {
@@ -57606,9 +57606,9 @@ const animeDatabase = [
     "anilist_id": 112151,
     "slug": "demon-slayer-mugen-train",
     "trailer": {
-      "id": "dQw4w9WgXcQ",
-      "site": "youtube",
-      "embedUrl": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+      "title": "Demon Slayer: Mugen Train - Official Preview",
+      "site": "native",
+      "thumbnail": ""
     },
     "characters": [
       {

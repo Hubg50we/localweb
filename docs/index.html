@@ -418,6 +418,8 @@
               <button class="server-pill" data-server="vidlink-dub" title="VidLink Pro (Dub)">VidLink (Dub)</button>
               <button class="server-pill" data-server="vidsrc-cc-dub" title="VidSrc CC (Dub)">VidSrc CC (Dub)</button>
               <button class="server-pill" data-server="consumet-hls" title="Direct Master HLS via Plyr">Direct HLS (Plyr)</button>
+              <button class="server-pill" data-server="archive-stream" title="Internet Archive Open Stream">Archive.org</button>
+              <button class="server-pill custom-stream-pill" id="openCustomStreamModalBtn" title="Mount local anime file or paste custom .m3u8/.mp4 stream"><i data-lucide="folder-video"></i> Custom / Local</button>
             </div>
             <div class="playback-toggles">
               <button class="ep-nav-btn" id="prevEpBtn" title="Previous Episode (P)"><i data-lucide="skip-back"></i> Prev</button>
@@ -562,13 +564,19 @@
               </div>
             </div>
 
-            <!-- Tab 3: Official Trailer -->
+            <!-- Tab 3: Official Promo & Visual Preview -->
             <div class="player-tab-content" id="tab-trailer">
               <div class="trailer-tab-header">
-                <h3><i data-lucide="film"></i> Official Promo Trailer</h3>
+                <h3><i data-lucide="film"></i> Official Promo & Visual Preview</h3>
+                <span class="preview-badge" style="display:inline-flex; align-items:center; gap:6px; font-size:0.75rem; background:rgba(0,255,204,0.15); color:var(--accent-cyan); padding:4px 8px; border-radius:12px; font-weight:700;"><i data-lucide="shield-check" style="width:14px; height:14px;"></i> 100% Native HTML5</span>
               </div>
               <div class="trailer-wrapper" id="trailerWrapper">
-                <iframe id="trailerPlayerIframe" src="" frameborder="0" allowfullscreen referrerpolicy="no-referrer" allow="autoplay; fullscreen; encrypted-media"></iframe>
+                <video id="trailerVideoPlayer" class="trailer-native-player" controls playsinline preload="metadata" poster="" style="width: 100%; height: 100%; max-height: 480px; object-fit: cover;"></video>
+                <div id="trailerPlaceholder" class="trailer-empty-state" style="display:none; text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                  <i data-lucide="clapperboard" style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.6;"></i>
+                  <h4 style="color: #fff; font-size: 1rem; margin-bottom: 6px;">Visual Promo Preview</h4>
+                  <p id="trailerPlaceholderText" style="font-size: 0.85rem;">Official promotional visual preview for this anime title.</p>
+                </div>
               </div>
             </div>
 
@@ -696,6 +704,57 @@
     </div>
   </div>
 
+  <!-- Custom Stream / Local Video File Loader Modal -->
+  <div class="player-modal custom-stream-modal" id="customStreamModal" style="display:none;">
+    <div class="player-overlay" id="customStreamOverlay"></div>
+    <div class="player-container custom-stream-container" style="max-width: 600px;">
+      <div class="player-header">
+        <h4 style="color:#fff; font-family:'Space Grotesk',sans-serif; display:flex; align-items:center; gap:8px;">
+          <i data-lucide="folder-video"></i> Load Custom Stream or Local File
+        </h4>
+        <button type="button" class="close-modal-btn" id="closeCustomStreamBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="custom-stream-body" style="padding: 20px;">
+        <div class="custom-stream-tabs" style="display:flex; gap:10px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+          <button type="button" class="btn-tab active" id="tabCustomUrlBtn" style="padding: 6px 14px; background: var(--accent-pink); color: #fff; border-radius: 6px; font-weight: 600;"><i data-lucide="link"></i> Direct URL / M3U8</button>
+          <button type="button" class="btn-tab" id="tabCustomLocalBtn" style="padding: 6px 14px; background: var(--bg-tertiary); color: var(--text-muted); border-radius: 6px; font-weight: 600;"><i data-lucide="hard-drive"></i> Local File Mount</button>
+        </div>
+
+        <!-- Tab 1: Direct URL -->
+        <div id="customUrlTabContent">
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">Paste any direct HLS (.m3u8), MP4, WebM, or embed URL to play directly in the HiAnime player:</p>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="color: var(--text-secondary); font-size: 0.85rem;">Stream URL *</label>
+            <input type="url" id="customStreamUrlInput" placeholder="https://example.com/stream.m3u8 or https://..." style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-color); color:#fff; padding:10px 14px; border-radius:6px; font-size:0.9rem;">
+          </div>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="color: var(--text-secondary); font-size: 0.85rem;">Optional Subtitle URL (.vtt / .srt)</label>
+            <input type="url" id="customSubtitleUrlInput" placeholder="https://example.com/subs.vtt" style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-color); color:#fff; padding:10px 14px; border-radius:6px; font-size:0.9rem;">
+          </div>
+          <button type="button" class="tool-btn-highlight" id="playCustomUrlBtn" style="width:100%; padding: 12px; font-size: 0.95rem; font-weight: 700;">
+            <i data-lucide="play"></i> Play Custom Stream
+          </button>
+        </div>
+
+        <!-- Tab 2: Local Video Mount -->
+        <div id="customLocalTabContent" style="display:none;">
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">Select a local video file from your computer (.mp4, .mkv, .webm) and an optional subtitle file. Plays offline natively via HTML5 File API with full AniSkip support:</p>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="color: var(--text-secondary); font-size: 0.85rem;">Local Video File * (.mp4, .mkv, .webm)</label>
+            <input type="file" id="customLocalVideoInput" accept="video/mp4,video/webm,video/x-matroska,video/*" style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:6px;">
+          </div>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="color: var(--text-secondary); font-size: 0.85rem;">Optional Subtitle File (.vtt, .srt)</label>
+            <input type="file" id="customLocalSubInput" accept=".vtt,.srt" style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:6px;">
+          </div>
+          <button type="button" class="tool-btn-highlight" id="playCustomLocalBtn" style="width:100%; padding: 12px; font-size: 0.95rem; font-weight: 700;">
+            <i data-lucide="folder-check"></i> Mount & Play Local File
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Watchlist Drawer -->
   <div class="drawer" id="watchlistDrawer">
     <div class="drawer-header">
@@ -792,6 +851,7 @@
           <button class="admin-tab-btn" data-tab="add"><i data-lucide="plus-circle"></i> Add / Edit Anime</button>
           <button class="admin-tab-btn" data-tab="spotlight"><i data-lucide="sparkles"></i> Spotlight Manager</button>
           <button class="admin-tab-btn" data-tab="settings"><i data-lucide="server"></i> Backend Bridge</button>
+          <button class="admin-tab-btn" data-tab="providers"><i data-lucide="radio"></i> Stream Providers</button>
         </div>
 
         <!-- Tab 1: Catalog Table -->
@@ -903,6 +963,23 @@
               <button type="button" class="tool-btn-highlight" id="adminSaveBackendUrlBtn"><i data-lucide="save"></i> Save URL</button>
               <button type="button" class="btn-secondary" id="adminPingBackendBtn"><i data-lucide="activity"></i> Ping /api/health</button>
               <span id="adminBackendStatusPill" style="padding: 6px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; background: var(--bg-surface); color: var(--text-muted);">Status: Unknown</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 5: Dynamic Streaming Providers Registry -->
+        <div class="admin-tab-content" id="adminTabProviders">
+          <div class="spotlight-manager-header">
+            <p>Configure dynamic streaming server templates. Supports placeholders: <code>{anilist_id}</code>, <code>{mal_id}</code>, <code>{slug}</code>, <code>{title}</code>, <code>{ep}</code>, and <code>{audio}</code>.</p>
+          </div>
+          <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+              <label>Providers Registry (JSON Configuration)</label>
+              <textarea id="adminProvidersJsonTextarea" rows="12" style="width: 100%; font-family: monospace; font-size: 0.85rem; background: var(--bg-tertiary); color: #00ffcc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;"></textarea>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="tool-btn-highlight" id="adminSaveProvidersBtn"><i data-lucide="save"></i> Save Providers Registry</button>
+              <button type="button" class="btn-secondary" id="adminResetProvidersBtn"><i data-lucide="rotate-ccw"></i> Reset Defaults</button>
             </div>
           </div>
         </div>
@@ -1062,7 +1139,7 @@
 
   <!-- Plyr HTML5 Player Engine -->
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
-  <script src="./data/anime-data.js?v=10.0"></script>
-  <script src="./app.js?v=10.0"></script>
+  <script src="./data/anime-data.js?v=11.0"></script>
+  <script src="./app.js?v=11.0"></script>
 </body>
 </html>

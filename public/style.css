@@ -4024,10 +4024,35 @@ body.high-contrast {
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
 }
-.trailer-wrapper iframe {
+.trailer-wrapper iframe,
+.trailer-wrapper video {
   width: 100%;
   height: 100%;
   border: none;
+  object-fit: cover;
+  background: #000;
+}
+
+/* Custom Stream & Local File Loader Styles */
+.custom-stream-pill {
+  background: linear-gradient(135deg, rgba(255, 0, 127, 0.2), rgba(0, 240, 255, 0.2)) !important;
+  border-color: var(--accent-pink) !important;
+  color: #fff !important;
+}
+.custom-stream-pill:hover {
+  background: var(--accent-pink) !important;
+  color: #fff !important;
+}
+
+.custom-stream-modal {
+  z-index: 10005;
+}
+.custom-stream-container {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
 }
 
 

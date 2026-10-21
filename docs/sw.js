@@ -1,12 +1,13 @@
-// HiAnime v10.0 Custom Neon Plyr+Hls Player Service Worker
-const CACHE_NAME = 'hianime-v10-custom-plyr';
+// HiAnime v11.0 Universal Multi-Source Streaming Service Worker
+const CACHE_NAME = 'hianime-v11-multisource';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  './data/anime-data.js'
+  './data/anime-data.js',
+  './data/providers.json'
 ];
 
 // Install: Cache critical static shell and skip waiting immediately

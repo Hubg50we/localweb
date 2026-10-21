@@ -295,6 +295,145 @@ app.get('/api/stream/:animeSlug/:ep', async (req, res) => {
   }
 });
 
+// 7. GET /api/sources/archive - Internet Archive Open Streaming Resolver
+app.get('/api/sources/archive', async (req, res) => {
+  const { title, ep } = req.query;
+  if (!title) {
+    return res.status(400).json({ success: false, error: 'Anime title query parameter is required' });
+  }
+  const epNum = parseInt(ep, 10) || 1;
+
+  try {
+    const searchUrl = `https://archive.org/advancedsearch.php?q=title:(${encodeURIComponent(title)})+AND+mediatype:(movies)&fl[]=identifier,title,description&output=json&rows=5`;
+    const searchRes = await fetch(searchUrl, {
+      headers: { 'User-Agent': 'HiAnime-Universal/11.0' },
+      signal: AbortSignal.timeout(9000)
+    }).catch(() => null);
+
+    if (!searchRes || !searchRes.ok) {
+      return res.json({ success: false, message: 'Archive.org search returned non-200 or timed out' });
+    }
+    const searchJson = await searchRes.json().catch(() => null);
+    const docs = searchJson?.response?.docs || [];
+    if (!docs || docs.length === 0) {
+      return res.json({ success: false, message: 'No archive items found for this title' });
+    }
+
+    const identifier = docs[0].identifier;
+    const metaRes = await fetch(`https://archive.org/metadata/${encodeURIComponent(identifier)}`, {
+      headers: { 'User-Agent': 'HiAnime-Universal/11.0' },
+      signal: AbortSignal.timeout(9000)
+    }).catch(() => null);
+
+    if (!metaRes || !metaRes.ok) {
+      return res.json({ success: false, message: 'Archive metadata lookup failed or timed out' });
+    }
+    const metaJson = await metaRes.json().catch(() => null);
+    const files = metaJson?.files || [];
+
+    const mp4Files = files.filter(f => f.name && (f.name.endsWith('.mp4') || f.name.endsWith('.webm') || f.format === 'h.264' || f.format === 'MPEG4'));
+    const selectedFile = mp4Files.find(f => f.name.toLowerCase().includes(`ep${epNum}`) || f.name.toLowerCase().includes(`ep_${epNum}`) || f.name.toLowerCase().includes(`0${epNum}`)) || mp4Files[0];
+    const subFile = files.find(f => f.name && (f.name.endsWith('.vtt') || f.name.endsWith('.srt')));
+
+    if (selectedFile) {
+      const streamUrl = `https://archive.org/download/${identifier}/${encodeURIComponent(selectedFile.name)}`;
+      const subtitleUrl = subFile ? `https://archive.org/download/${identifier}/${encodeURIComponent(subFile.name)}` : null;
+      return res.json({
+        success: true,
+        source: 'archive.org',
+        identifier,
+        streamUrl,
+        subtitleUrl,
+        title: docs[0].title || title
+      });
+    }
+
+    return res.json({ success: false, message: 'No playable video files in archive metadata' });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// 8. GET /api/stream/proxy - High-Performance CORS & M3U8 Rewriter Proxy
+app.get('/api/stream/proxy', async (req, res) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) {
+    return res.status(400).send('Target url query param is required');
+  }
+
+  try {
+    const parsed = new URL(targetUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return res.status(400).send('Invalid URL protocol');
+    }
+
+    const clientHeaders = {
+      'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': req.headers['accept'] || '*/*'
+    };
+    if (req.headers['range']) {
+      clientHeaders['Range'] = req.headers['range'];
+    }
+
+    const response = await fetch(targetUrl, { headers: clientHeaders });
+    const contentType = response.headers.get('content-type') || '';
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+
+    // M3U8 Playlist processing: rewrite child chunk / playlist URIs
+    if (targetUrl.includes('.m3u8') || contentType.includes('mpegurl') || contentType.includes('application/x-mpegURL')) {
+      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+      const bodyText = await response.text();
+      const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
+
+      const rewritten = bodyText.split('\n').map(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return line;
+        let absolute = trimmed;
+        if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+          if (trimmed.startsWith('/')) {
+            absolute = `${parsed.origin}${trimmed}`;
+          } else {
+            absolute = `${baseUrl}${trimmed}`;
+          }
+        }
+        return `/api/stream/proxy?url=${encodeURIComponent(absolute)}`;
+      }).join('\n');
+
+      return res.send(rewritten);
+    }
+
+    // Media chunk / video file stream
+    if (contentType) res.setHeader('Content-Type', contentType);
+    const contentLength = response.headers.get('content-length');
+    if (contentLength) res.setHeader('Content-Length', contentLength);
+    if (response.status === 206) {
+      res.status(206);
+      const contentRange = response.headers.get('content-range');
+      if (contentRange) res.setHeader('Content-Range', contentRange);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
+  } catch (err) {
+    res.status(502).json({ error: 'Proxy fetch failed', details: err.message });
+  }
+});
+
+// 9. GET /api/providers - List Configured Streaming Providers
+app.get('/api/providers', (req, res) => {
+  const providersPath = path.join(__dirname, 'data', 'providers.json');
+  if (fs.existsSync(providersPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(providersPath, 'utf-8'));
+      return res.json({ success: true, providers: data });
+    } catch (_) {}
+  }
+  res.json({ success: false, providers: [] });
+});
+
 // PWA Manifest Route
 app.get('/manifest.json', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json');

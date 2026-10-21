@@ -324,6 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupDirectToolbarListeners();
   setupAudioPrefListeners();
   setupSubtitleStylerListeners();
+  setupCustomStreamListeners();
   setupKeyboardShortcuts();
   checkUrlPartyParams();
   updateSandboxLockBtnUI();
@@ -577,7 +578,7 @@ function showToast(message, type = 'info') {
   }, 3000);
 }
 
-// --- AUDIO PREFERENCE, SERVER ROTATION & AUTO-FAILOVER ---
+// --- AUDIO PREFERENCE, MULTI-SOURCE PROVIDERS & AUTO-FAILOVER ---
 let userAudioPref = localStorage.getItem('hianime_audio_pref') || 'SUB';
 let autoFailoverEnabled = localStorage.getItem('hianime_auto_failover') !== 'false';
 let failoverTimer = null;
@@ -585,11 +586,165 @@ let currentSkipTimes = null;
 let activeSkipTargetTime = 0;
 let plyrInstance = null;
 
-const SUB_SERVER_ROTATION = ['vidsrc-sub', 'vidlink-sub', 'vidsrc-cc-sub', 'multiembed', 'twoembed', 'vidsrc-dub', 'vidlink-dub', 'vidsrc-cc-dub', 'consumet-hls'];
-const DUB_SERVER_ROTATION = ['vidsrc-dub', 'vidlink-dub', 'vidsrc-cc-dub', 'multiembed', 'vidsrc-sub', 'vidlink-sub', 'vidsrc-cc-sub', 'twoembed', 'consumet-hls'];
+// Configurable Dynamic Providers Registry (editable in Admin Studio & localStorage)
+const DEFAULT_STREAMING_PROVIDERS = [
+  {
+    id: "vidsrc-sub",
+    name: "VidSrc (Sub)",
+    type: "embed",
+    audio: "sub",
+    urlTemplate: "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/0",
+    enabled: true
+  },
+  {
+    id: "vidsrc-dub",
+    name: "VidSrc (Dub)",
+    type: "embed",
+    audio: "dub",
+    urlTemplate: "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/1",
+    enabled: true
+  },
+  {
+    id: "vidlink-sub",
+    name: "VidLink (Sub)",
+    type: "embed",
+    audio: "sub",
+    urlTemplate: "https://vidlink.pro/anime/{mal_id}/{ep}/sub",
+    enabled: true
+  },
+  {
+    id: "vidlink-dub",
+    name: "VidLink (Dub)",
+    type: "embed",
+    audio: "dub",
+    urlTemplate: "https://vidlink.pro/anime/{mal_id}/{ep}/dub",
+    enabled: true
+  },
+  {
+    id: "vidsrc-cc-sub",
+    name: "VidSrc CC (Sub)",
+    type: "embed",
+    audio: "sub",
+    urlTemplate: "https://vidsrc.cc/v2/embed/anime/{anilist_id}/{ep}/sub",
+    enabled: true
+  },
+  {
+    id: "vidsrc-cc-dub",
+    name: "VidSrc CC (Dub)",
+    type: "embed",
+    audio: "dub",
+    urlTemplate: "https://vidsrc.cc/v2/embed/anime/{anilist_id}/{ep}/dub",
+    enabled: true
+  },
+  {
+    id: "multiembed",
+    name: "MultiEmbed",
+    type: "embed",
+    audio: "sub",
+    urlTemplate: "https://multiembed.mov/?video_id={mal_id}&mal=1&s=1&e={ep}",
+    enabled: true
+  },
+  {
+    id: "twoembed",
+    name: "2Anime XYZ",
+    type: "embed",
+    audio: "sub",
+    urlTemplate: "https://2anime.xyz/embed/{slug}-episode-{ep}",
+    enabled: true
+  },
+  {
+    id: "archive-stream",
+    name: "Archive.org Stream",
+    type: "archive",
+    audio: "sub",
+    urlTemplate: "/api/sources/archive?title={title}&ep={ep}",
+    enabled: true
+  },
+  {
+    id: "direct-hls",
+    name: "Direct HLS / Consumet",
+    type: "hls",
+    audio: "sub",
+    urlTemplate: "/api/stream/{slug}/{ep}",
+    enabled: true
+  }
+];
+
+let streamingProviders = DEFAULT_STREAMING_PROVIDERS;
+
+function loadStreamingProviders() {
+  const custom = localStorage.getItem('hianime_custom_providers');
+  if (custom) {
+    try {
+      const parsed = JSON.parse(custom);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        streamingProviders = parsed;
+        return;
+      }
+    } catch (_) {}
+  }
+  streamingProviders = DEFAULT_STREAMING_PROVIDERS;
+}
+
+// Universal Stream Resolver: Resolves 5 distinct source types
+function resolveEpisodeSources(anime, episodeNumber, audioPref = 'SUB') {
+  if (!anime) return [];
+  loadStreamingProviders();
+
+  const mal = String(anime.mal_id || anime.malId || '52299');
+  const anilistId = String(anime.anilist_id || anime.idMal || mal);
+  const slug = anime.slug || anime.id || 'anime';
+  const title = anime.title || 'Anime';
+  const epNum = episodeNumber || 1;
+  const audio = (audioPref || 'SUB').toLowerCase();
+
+  return streamingProviders
+    .filter(p => p.enabled)
+    .map(p => {
+      let resolvedUrl = p.urlTemplate
+        .replace(/{anilist_id}/g, anilistId)
+        .replace(/{mal_id}/g, mal)
+        .replace(/{slug}/g, slug)
+        .replace(/{title}/g, encodeURIComponent(title))
+        .replace(/{ep}/g, String(epNum))
+        .replace(/{audio}/g, audio);
+
+      if (resolvedUrl.startsWith('/api/')) {
+        resolvedUrl = apiUrl(resolvedUrl);
+      }
+
+      const isHls = p.type === 'hls' || resolvedUrl.includes('.m3u8');
+      const isMp4 = p.type === 'mp4' || resolvedUrl.includes('.mp4');
+      const isArchive = p.type === 'archive';
+      const isEmbed = p.type === 'embed' || (!isHls && !isMp4 && !isArchive);
+
+      return {
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        audio: p.audio,
+        url: resolvedUrl,
+        isEmbed,
+        isHls,
+        isMp4,
+        isArchive,
+        fallbackEmbed: `https://vidsrc.icu/embed/anime/${anilistId}/${epNum}/${audio === 'dub' ? 1 : 0}`
+      };
+    });
+}
 
 function getActiveRotation() {
-  return userAudioPref === 'DUB' ? DUB_SERVER_ROTATION : SUB_SERVER_ROTATION;
+  loadStreamingProviders();
+  const active = streamingProviders.filter(p => p.enabled);
+  if (userAudioPref === 'DUB') {
+    const dubs = active.filter(p => p.audio === 'dub').map(p => p.id);
+    const others = active.filter(p => p.audio !== 'dub').map(p => p.id);
+    return [...dubs, ...others];
+  } else {
+    const subs = active.filter(p => p.audio !== 'dub').map(p => p.id);
+    const dubs = active.filter(p => p.audio === 'dub').map(p => p.id);
+    return [...subs, ...dubs];
+  }
 }
 
 function updateServerNotice(serverKey) {
@@ -604,9 +759,11 @@ function updateServerNotice(serverKey) {
     'vidsrc-dub': 'Playing via <strong>VidSrc Anime (DUB)</strong> — English Dubbed Audio',
     'vidlink-dub': 'Playing via <strong>VidLink Stream (DUB)</strong> — English Dubbed Audio',
     'vidsrc-cc-dub': 'Playing via <strong>VidSrc CC (DUB)</strong> — English Dubbed Mirror',
-    'consumet-hls': 'Playing via <strong>Direct HLS (Plyr Skin)</strong> — Native Master Playlist'
+    'consumet-hls': 'Playing via <strong>Direct HLS (Plyr Skin)</strong> — Native Master Playlist',
+    'archive-stream': 'Playing via <strong>Internet Archive (Archive.org)</strong> — Open Stream',
+    'direct-hls': 'Playing via <strong>Direct HLS / Consumet</strong> — Native Master Playlist'
   };
-  noticeEl.innerHTML = labels[serverKey] || 'Playing via Active Stream Gateway.';
+  noticeEl.innerHTML = labels[serverKey] || `Playing via <strong>${escapeHtml(serverKey)}</strong> Stream Provider.`;
 }
 
 function cycleNextServer(isAuto = false) {
@@ -615,6 +772,7 @@ function cycleNextServer(isAuto = false) {
     failoverTimer = null;
   }
   const rotation = getActiveRotation();
+  if (!rotation || rotation.length === 0) return;
   const currentIndex = rotation.indexOf(currentServer);
   const nextIndex = (currentIndex + 1) % rotation.length;
   currentServer = rotation[nextIndex];
@@ -626,85 +784,51 @@ function cycleNextServer(isAuto = false) {
 
   if (currentPlayingAnime) {
     const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
-    loadActivePlayer(streamInfo.url, streamInfo.isEmbed, streamInfo.isDynamic, streamInfo.fallbackEmbed);
-    showToast(isAuto ? `Server slow or unavailable — switched to ${currentServer.toUpperCase()}` : `Switched server to ${currentServer.toUpperCase()}`, isAuto ? 'warning' : 'info');
+    loadActivePlayer(streamInfo.url, streamInfo.isEmbed, streamInfo.isDynamic, streamInfo.fallbackEmbed, streamInfo.isArchive);
+    showToast(isAuto ? `Switched to backup stream source (${currentServer.toUpperCase()})` : `Switched server to ${currentServer.toUpperCase()}`, isAuto ? 'warning' : 'info');
   }
 }
 
 function getServerStreamUrl(serverName, anime, epNumber) {
   if (!anime) return { url: '', isEmbed: true };
-  const mal = String(anime.mal_id || anime.malId || '52299');
-  const anilistId = String(anime.anilist_id || anime.idMal || mal);
-  const slug = anime.slug || anime.id || 'anime';
-  const ep = (anime.episodes && anime.episodes.find(e => e.number === epNumber)) || 
-    (anime.episodes && anime.episodes[0]) || 
-    { number: epNumber };
+  const sources = resolveEpisodeSources(anime, epNumber, userAudioPref);
+  const matched = sources.find(s => s.id === serverName) || sources[0];
 
   updateServerNotice(serverName);
 
-  switch (serverName) {
-    case 'vidsrc-sub':
-    case 'vidsrc':
-      return { 
-        url: ep.vidsrcSubUrl || `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/0`, 
-        isEmbed: true 
-      };
-    case 'vidlink-sub':
-    case 'ultra-hd':
-      return { 
-        url: ep.vidlinkSubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/sub`, 
-        isEmbed: true 
-      };
-    case 'vidsrc-cc-sub':
+  if (matched) {
+    if (matched.isArchive) {
       return {
-        url: ep.vidsrcCcSubUrl || `https://vidsrc.cc/v2/embed/anime/${anilistId}/${epNumber}/sub`,
-        isEmbed: true
+        url: matched.url,
+        isEmbed: false,
+        isArchive: true,
+        fallbackEmbed: matched.fallbackEmbed
       };
-    case 'vidsrc-dub':
-    case 'vidsrc-classic':
-      return { 
-        url: ep.vidsrcDubUrl || `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/1`, 
-        isEmbed: true 
-      };
-    case 'vidlink-dub':
-    case 'streamwish':
-      return { 
-        url: ep.vidlinkDubUrl || `https://vidlink.pro/anime/${mal}/${epNumber}/dub`, 
-        isEmbed: true 
-      };
-    case 'vidsrc-cc-dub':
+    }
+    if (matched.isHls) {
       return {
-        url: ep.vidsrcCcDubUrl || `https://vidsrc.cc/v2/embed/anime/${anilistId}/${epNumber}/dub`,
-        isEmbed: true
-      };
-    case 'multiembed':
-    case 'megacloud':
-      return { 
-        url: ep.megaCloudUrl || `https://multiembed.mov/?video_id=${mal}&mal=1&s=1&e=${epNumber}`, 
-        isEmbed: true 
-      };
-    case 'twoembed':
-      return { 
-        url: ep.twoEmbedUrl || `https://2anime.xyz/embed/${slug}-episode-${epNumber}`, 
-        isEmbed: true 
-      };
-    case 'consumet-hls':
-    case 'direct-hls':
-      return { 
-        url: apiUrl(`/api/stream/${slug}/${epNumber}`), 
-        fallbackEmbed: `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/0`,
+        url: matched.url,
+        isEmbed: false,
         isDynamic: true,
-        isEmbed: false 
+        fallbackEmbed: matched.fallbackEmbed
       };
-    default:
-      return { 
-        url: ep.vidsrcSubUrl || `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/0`, 
-        isEmbed: true 
-      };
+    }
+    return {
+      url: matched.url,
+      isEmbed: matched.isEmbed,
+      fallbackEmbed: matched.fallbackEmbed
+    };
   }
+
+  const mal = String(anime.mal_id || anime.malId || '52299');
+  const anilistId = String(anime.anilist_id || anime.idMal || mal);
+  return { 
+    url: `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/${userAudioPref === 'DUB' ? 1 : 0}`, 
+    isEmbed: true 
+  };
 }
 
-async function loadActivePlayer(sourceUrl, isEmbed = true, isDynamic = false, fallbackEmbed = '') {
+async function loadActivePlayer(sourceUrl, isEmbed = true, isDynamic = false, fallbackEmbed = '', isArchive = false) {
   if (failoverTimer) {
     clearTimeout(failoverTimer);
     failoverTimer = null;
@@ -712,6 +836,40 @@ async function loadActivePlayer(sourceUrl, isEmbed = true, isDynamic = false, fa
 
   const plyrWrapper = document.getElementById('plyrWrapper');
   const neonHlsPlayer = document.getElementById('neonHlsPlayer');
+
+  if (isArchive) {
+    try {
+      showToast('Querying Archive.org stream...', 'info');
+      let data = null;
+      try {
+        data = await fetch(sourceUrl).then(r => r.json());
+      } catch (_) {
+        const animeTitle = currentPlayingAnime?.title || '';
+        const searchUrl = `https://archive.org/advancedsearch.php?q=title:(${encodeURIComponent(animeTitle)})+AND+mediatype:(movies)&fl[]=identifier,title&output=json&rows=3`;
+        const sRes = await fetch(searchUrl).then(r => r.json());
+        const docs = sRes?.response?.docs || [];
+        if (docs && docs.length > 0) {
+          const id = docs[0].identifier;
+          const mRes = await fetch(`https://archive.org/metadata/${id}`).then(r => r.json());
+          const mp4 = (mRes?.files || []).find(f => f.name && f.name.endsWith('.mp4'));
+          if (mp4) {
+            data = { success: true, streamUrl: `https://archive.org/download/${id}/${encodeURIComponent(mp4.name)}` };
+          }
+        }
+      }
+
+      if (data && data.success && data.streamUrl) {
+        showToast('Playing Archive.org open stream via Plyr', 'success');
+        loadActivePlayer(data.streamUrl, false);
+        return;
+      }
+    } catch (err) {
+      console.warn('Archive stream resolver failed:', err);
+    }
+    showToast('Archive stream unavailable — switched to backup stream source', 'warning');
+    loadActivePlayer(fallbackEmbed || `https://vidsrc.icu/embed/anime/151807/1/0`, true);
+    return;
+  }
 
   if (isDynamic) {
     try {
@@ -817,9 +975,16 @@ function initPlyrHlsPlayer(streamUrl) {
     } catch (_) {}
   }
 
-  // Restore saved playback speed
   neonHlsPlayer.playbackRate = savedSpeed;
   updateSpeedUI(savedSpeed);
+
+  neonHlsPlayer.onerror = () => {
+    console.warn('[NeonHLSPlayer Error] Native video playback error, triggering auto-failover');
+    const autoFailoverBox = document.getElementById('autoFailoverCheck');
+    if (!autoFailoverBox || autoFailoverBox.checked) {
+      cycleNextServer(true);
+    }
+  };
 
   if (streamUrl && streamUrl.includes('.m3u8')) {
     if (window.Hls && Hls.isSupported()) {
@@ -839,17 +1004,10 @@ function initPlyrHlsPlayer(streamUrl) {
 
       hlsPlayer.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hlsPlayer.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hlsPlayer.recoverMediaError();
-              break;
-            default:
-              hlsPlayer.destroy();
-              hlsPlayer = null;
-              break;
+          console.warn('[HLS Fatal Error]', data);
+          const autoFailoverBox = document.getElementById('autoFailoverCheck');
+          if (!autoFailoverBox || autoFailoverBox.checked) {
+            cycleNextServer(true);
           }
         }
       });
@@ -1425,12 +1583,23 @@ function renderCastTab(anime) {
 }
 
 function renderTrailerTab(anime) {
-  const trailerIframe = document.getElementById('trailerPlayerIframe');
-  if (!trailerIframe) return;
-  if (anime.trailer && anime.trailer.embedUrl) {
-    trailerIframe.src = anime.trailer.embedUrl;
+  const trailerVideo = document.getElementById('trailerVideoPlayer');
+  const trailerPlaceholder = document.getElementById('trailerPlaceholder');
+  if (!trailerVideo) return;
+
+  const posterImg = (anime.trailer && anime.trailer.thumbnail) || anime.banner || anime.poster || '';
+  trailerVideo.poster = posterImg;
+
+  if (anime.trailer && anime.trailer.videoUrl) {
+    trailerVideo.src = anime.trailer.videoUrl;
+    trailerVideo.style.display = 'block';
+    if (trailerPlaceholder) trailerPlaceholder.style.display = 'none';
   } else {
-    trailerIframe.src = 'about:blank';
+    trailerVideo.src = '';
+    trailerVideo.style.display = 'block';
+    if (trailerPlaceholder) {
+      trailerPlaceholder.style.display = 'none';
+    }
   }
 }
 
@@ -1722,8 +1891,11 @@ function closeWatchModal() {
     hlsPlayer.destroy();
     hlsPlayer = null;
   }
-  const trailerIframe = document.getElementById('trailerPlayerIframe');
-  if (trailerIframe) trailerIframe.src = 'about:blank';
+  const trailerVideo = document.getElementById('trailerVideoPlayer');
+  if (trailerVideo) {
+    trailerVideo.pause();
+    trailerVideo.src = '';
+  }
   document.body.style.overflow = '';
 }
 
@@ -3450,9 +3622,52 @@ function setupAdminListeners() {
       } else if (targetTab === 'settings') {
         const settingsTab = document.getElementById('adminTabSettings');
         if (settingsTab) settingsTab.classList.add('active');
+      } else if (targetTab === 'providers') {
+        const providersTab = document.getElementById('adminTabProviders');
+        if (providersTab) providersTab.classList.add('active');
+        const jsonArea = document.getElementById('adminProvidersJsonTextarea');
+        if (jsonArea) {
+          loadStreamingProviders();
+          jsonArea.value = JSON.stringify(streamingProviders, null, 2);
+        }
       }
     });
   });
+
+  const adminSaveProvidersBtn = document.getElementById('adminSaveProvidersBtn');
+  const adminResetProvidersBtn = document.getElementById('adminResetProvidersBtn');
+  const adminProvidersJsonTextarea = document.getElementById('adminProvidersJsonTextarea');
+
+  if (adminSaveProvidersBtn && adminProvidersJsonTextarea) {
+    adminSaveProvidersBtn.addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(adminProvidersJsonTextarea.value.trim());
+        if (!Array.isArray(parsed)) throw new Error('Providers registry must be a JSON array');
+        streamingProviders = parsed;
+        localStorage.setItem('hianime_custom_providers', JSON.stringify(parsed, null, 2));
+        showToast('Stream providers registry saved!', 'success');
+        if (currentPlayingAnime) {
+          const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
+          loadActivePlayer(streamInfo.url, streamInfo.isEmbed, streamInfo.isDynamic, streamInfo.fallbackEmbed, streamInfo.isArchive);
+        }
+      } catch (err) {
+        showToast(`Invalid JSON: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  if (adminResetProvidersBtn && adminProvidersJsonTextarea) {
+    adminResetProvidersBtn.addEventListener('click', () => {
+      localStorage.removeItem('hianime_custom_providers');
+      streamingProviders = DEFAULT_STREAMING_PROVIDERS;
+      adminProvidersJsonTextarea.value = JSON.stringify(streamingProviders, null, 2);
+      showToast('Providers reset to default registry', 'info');
+      if (currentPlayingAnime) {
+        const streamInfo = getServerStreamUrl(currentServer, currentPlayingAnime, currentPlayingEpisode);
+        loadActivePlayer(streamInfo.url, streamInfo.isEmbed, streamInfo.isDynamic, streamInfo.fallbackEmbed, streamInfo.isArchive);
+      }
+    });
+  }
 
   const adminBackendUrlInput = document.getElementById('adminBackendUrlInput');
   const adminSaveBackendUrlBtn = document.getElementById('adminSaveBackendUrlBtn');
@@ -4249,4 +4464,124 @@ function setupMiniPlayerDrag() {
     isDragging = false;
   });
 }
+
+// Setup Custom Stream & Local Video File Loader Listeners
+function setupCustomStreamListeners() {
+  const openBtn = document.getElementById('openCustomStreamModalBtn');
+  const modal = document.getElementById('customStreamModal');
+  const closeBtn = document.getElementById('closeCustomStreamBtn');
+  const overlay = document.getElementById('customStreamOverlay');
+  const tabUrlBtn = document.getElementById('tabCustomUrlBtn');
+  const tabLocalBtn = document.getElementById('tabCustomLocalBtn');
+  const urlTabContent = document.getElementById('customUrlTabContent');
+  const localTabContent = document.getElementById('customLocalTabContent');
+
+  if (!modal) return;
+
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  if (openBtn) {
+    openBtn.addEventListener('click', () => {
+      modal.style.display = 'block';
+      if (window.lucide) lucide.createIcons();
+    });
+  }
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (overlay) overlay.addEventListener('click', closeModal);
+
+  if (tabUrlBtn && tabLocalBtn) {
+    tabUrlBtn.addEventListener('click', () => {
+      tabUrlBtn.classList.add('active');
+      tabUrlBtn.style.background = 'var(--accent-pink)';
+      tabUrlBtn.style.color = '#fff';
+      tabLocalBtn.classList.remove('active');
+      tabLocalBtn.style.background = 'var(--bg-tertiary)';
+      tabLocalBtn.style.color = 'var(--text-muted)';
+      if (urlTabContent) urlTabContent.style.display = 'block';
+      if (localTabContent) localTabContent.style.display = 'none';
+    });
+
+    tabLocalBtn.addEventListener('click', () => {
+      tabLocalBtn.classList.add('active');
+      tabLocalBtn.style.background = 'var(--accent-pink)';
+      tabLocalBtn.style.color = '#fff';
+      tabUrlBtn.classList.remove('active');
+      tabUrlBtn.style.background = 'var(--bg-tertiary)';
+      tabUrlBtn.style.color = 'var(--text-muted)';
+      if (localTabContent) localTabContent.style.display = 'block';
+      if (urlTabContent) urlTabContent.style.display = 'none';
+    });
+  }
+
+  // Play Direct Custom URL
+  const playUrlBtn = document.getElementById('playCustomUrlBtn');
+  const streamUrlInput = document.getElementById('customStreamUrlInput');
+  const subtitleUrlInput = document.getElementById('customSubtitleUrlInput');
+
+  if (playUrlBtn && streamUrlInput) {
+    playUrlBtn.addEventListener('click', () => {
+      const url = streamUrlInput.value.trim();
+      if (!url) {
+        showToast('Please enter a valid stream URL', 'warning');
+        return;
+      }
+      closeModal();
+      const isDirectMedia = url.includes('.m3u8') || url.includes('.mp4') || url.includes('.webm');
+      showToast('Loading custom stream...', 'info');
+      loadActivePlayer(url, !isDirectMedia);
+
+      const subUrl = subtitleUrlInput?.value?.trim();
+      if (subUrl && isDirectMedia) {
+        const neonHlsPlayer = document.getElementById('neonHlsPlayer');
+        if (neonHlsPlayer) {
+          const track = document.createElement('track');
+          track.kind = 'subtitles';
+          track.label = 'Custom Subtitles';
+          track.srclang = 'en';
+          track.src = subUrl;
+          track.default = true;
+          neonHlsPlayer.appendChild(track);
+        }
+      }
+    });
+  }
+
+  // Mount & Play Local File
+  const playLocalBtn = document.getElementById('playCustomLocalBtn');
+  const localVideoInput = document.getElementById('customLocalVideoInput');
+  const localSubInput = document.getElementById('customLocalSubInput');
+
+  if (playLocalBtn && localVideoInput) {
+    playLocalBtn.addEventListener('click', () => {
+      const file = localVideoInput.files?.[0];
+      if (!file) {
+        showToast('Please select a local video file', 'warning');
+        return;
+      }
+      closeModal();
+      const videoBlobUrl = URL.createObjectURL(file);
+      showToast(`Mounted local file: ${file.name}`, 'success');
+
+      loadActivePlayer(videoBlobUrl, false);
+
+      const subFile = localSubInput?.files?.[0];
+      if (subFile) {
+        const subBlobUrl = URL.createObjectURL(subFile);
+        const neonHlsPlayer = document.getElementById('neonHlsPlayer');
+        if (neonHlsPlayer) {
+          const track = document.createElement('track');
+          track.kind = 'subtitles';
+          track.label = subFile.name;
+          track.srclang = 'en';
+          track.src = subBlobUrl;
+          track.default = true;
+          neonHlsPlayer.appendChild(track);
+        }
+      }
+    });
+  }
+}
+
 
