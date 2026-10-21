@@ -1,5 +1,5 @@
-// HiAnime v7.0 Real Streams Enterprise Service Worker
-const CACHE_NAME = 'hianime-v7-real-streams';
+// HiAnime v10.0 Custom Neon Plyr+Hls Player Service Worker
+const CACHE_NAME = 'hianime-v10-custom-plyr';
 const STATIC_ASSETS = [
   './',
   './index.html',
