@@ -1779,6 +1779,22 @@ const DEFAULT_STREAMING_PROVIDERS = [
     enabled: true
   },
   {
+    id: "vidsrc-sh-sub",
+    name: "VidSrc SH (Sub)",
+    type: "embed",
+    audio: "sub",
+    urlTemplate: "https://vidsrc.sh/embed/anime?mal={mal_id}&e={ep}",
+    enabled: true
+  },
+  {
+    id: "vidsrc-me-sub",
+    name: "VidSrc Pro (Sub)",
+    type: "embed",
+    audio: "sub",
+    urlTemplate: "https://vidsrc.me/embed/anime?mal={mal_id}&e={ep}",
+    enabled: true
+  },
+  {
     id: "direct-hls",
     name: "Direct HLS / Consumet",
     type: "hls",
@@ -1795,43 +1811,27 @@ const DEFAULT_STREAMING_PROVIDERS = [
     enabled: true
   },
   {
-    id: "vidsrc-cc-sub",
-    name: "VidSrc CC (Sub)",
+    id: "vidlink-backup",
+    name: "VidLink Cloud Backup",
     type: "embed",
     audio: "sub",
-    urlTemplate: "https://vidsrc.cc/v2/embed/anime/{anilist_id}/{ep}/sub",
+    urlTemplate: "https://vidlink.pro/anime/{mal_id}/{ep}/sub",
     enabled: true
   },
   {
-    id: "vidsrc-cc-dub",
-    name: "VidSrc CC (Dub)",
+    id: "multiembed-dub",
+    name: "MultiEmbed Alternate",
     type: "embed",
     audio: "dub",
-    urlTemplate: "https://vidsrc.cc/v2/embed/anime/{anilist_id}/{ep}/dub",
+    urlTemplate: "https://multiembed.mov/?video_id={mal_id}&mal=1&s=1&e={ep}",
     enabled: true
   },
   {
-    id: "twoembed",
-    name: "2Anime XYZ",
-    type: "embed",
-    audio: "sub",
-    urlTemplate: "https://2anime.xyz/embed/{slug}-episode-{ep}",
-    enabled: true
-  },
-  {
-    id: "vidsrc-sub",
-    name: "VidSrc ICU (Sub)",
-    type: "embed",
-    audio: "sub",
-    urlTemplate: "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/0",
-    enabled: true
-  },
-  {
-    id: "vidsrc-dub",
-    name: "VidSrc ICU (Dub)",
+    id: "vidsrc-sh-dub",
+    name: "VidSrc SH (Dub)",
     type: "embed",
     audio: "dub",
-    urlTemplate: "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/1",
+    urlTemplate: "https://vidsrc.sh/embed/anime?mal={mal_id}&e={ep}&ds_lang=en",
     enabled: true
   }
 ];
@@ -1894,7 +1894,7 @@ function resolveEpisodeSources(anime, episodeNumber, audioPref = 'SUB') {
         isHls,
         isMp4,
         isArchive,
-        fallbackEmbed: `https://vidsrc.icu/embed/anime/${anilistId}/${epNum}/${audio === 'dub' ? 1 : 0}`
+        fallbackEmbed: `https://vidlink.pro/anime/${mal}/${epNum}/${audio === 'dub' ? 'dub' : 'sub'}`
       };
     });
 }
@@ -1980,6 +1980,12 @@ function cycleNextServer(isAuto = false) {
 }
 
 function getServerStreamUrl(serverName, anime, epNumber) {
+  if (serverName === 'vidsrc-sub' || serverName === 'vidsrc-icu' || serverName === 'vidsrc-cc-sub' || serverName === 'twoembed') {
+    serverName = 'vidlink-sub';
+  }
+  if (serverName === 'vidsrc-dub' || serverName === 'vidsrc-cc-dub') {
+    serverName = 'vidlink-dub';
+  }
   if (!anime) return { url: '', isEmbed: true };
   const sources = resolveEpisodeSources(anime, epNumber, userAudioPref);
   const matched = sources.find(s => s.id === serverName) || sources[0];
@@ -2011,9 +2017,8 @@ function getServerStreamUrl(serverName, anime, epNumber) {
   }
 
   const mal = String(anime.mal_id || anime.malId || '52299');
-  const anilistId = String(anime.anilist_id || anime.idMal || mal);
   return { 
-    url: `https://vidsrc.icu/embed/anime/${anilistId}/${epNumber}/${userAudioPref === 'DUB' ? 1 : 0}`, 
+    url: `https://vidlink.pro/anime/${mal}/${epNumber}/${userAudioPref === 'DUB' ? 'dub' : 'sub'}`, 
     isEmbed: true 
   };
 }
@@ -2687,9 +2692,9 @@ function setAudioPreference(pref) {
   // Re-order or switch active server if currentServer doesn't match pref
   const isDubServer = currentServer.includes('dub');
   if (pref === 'DUB' && !isDubServer) {
-    currentServer = 'vidsrc-dub';
+    currentServer = 'vidlink-dub';
   } else if (pref === 'SUB' && isDubServer) {
-    currentServer = 'vidsrc-sub';
+    currentServer = 'vidlink-sub';
   }
 
   // Update pills
@@ -3011,9 +3016,9 @@ async function openWatchModal(animeId, episodeNum = 1) {
   // Sync Audio Preference & Server
   syncAudioPrefUI();
   if (userAudioPref === 'DUB' && !currentServer.includes('dub')) {
-    currentServer = 'vidsrc-dub';
+    currentServer = 'vidlink-dub';
   } else if (userAudioPref === 'SUB' && currentServer.includes('dub')) {
-    currentServer = 'vidsrc-sub';
+    currentServer = 'vidlink-sub';
   }
 
   // Resolve stream using active server

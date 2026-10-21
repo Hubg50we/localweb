@@ -24,6 +24,22 @@
     "enabled": true
   },
   {
+    "id": "vidsrc-sh-sub",
+    "name": "VidSrc SH (Sub)",
+    "type": "embed",
+    "audio": "sub",
+    "urlTemplate": "https://vidsrc.sh/embed/anime?mal={mal_id}&e={ep}",
+    "enabled": true
+  },
+  {
+    "id": "vidsrc-me-sub",
+    "name": "VidSrc Pro (Sub)",
+    "type": "embed",
+    "audio": "sub",
+    "urlTemplate": "https://vidsrc.me/embed/anime?mal={mal_id}&e={ep}",
+    "enabled": true
+  },
+  {
     "id": "direct-hls",
     "name": "Direct HLS / Consumet",
     "type": "hls",
@@ -40,43 +56,27 @@
     "enabled": true
   },
   {
-    "id": "vidsrc-cc-sub",
-    "name": "VidSrc CC (Sub)",
+    "id": "vidlink-backup",
+    "name": "VidLink Cloud Backup",
     "type": "embed",
     "audio": "sub",
-    "urlTemplate": "https://vidsrc.cc/v2/embed/anime/{anilist_id}/{ep}/sub",
+    "urlTemplate": "https://vidlink.pro/anime/{mal_id}/{ep}/sub",
     "enabled": true
   },
   {
-    "id": "vidsrc-cc-dub",
-    "name": "VidSrc CC (Dub)",
+    "id": "multiembed-dub",
+    "name": "MultiEmbed Alternate",
     "type": "embed",
     "audio": "dub",
-    "urlTemplate": "https://vidsrc.cc/v2/embed/anime/{anilist_id}/{ep}/dub",
+    "urlTemplate": "https://multiembed.mov/?video_id={mal_id}&mal=1&s=1&e={ep}",
     "enabled": true
   },
   {
-    "id": "twoembed",
-    "name": "2Anime XYZ",
-    "type": "embed",
-    "audio": "sub",
-    "urlTemplate": "https://2anime.xyz/embed/{slug}-episode-{ep}",
-    "enabled": true
-  },
-  {
-    "id": "vidsrc-sub",
-    "name": "VidSrc ICU (Sub)",
-    "type": "embed",
-    "audio": "sub",
-    "urlTemplate": "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/0",
-    "enabled": true
-  },
-  {
-    "id": "vidsrc-dub",
-    "name": "VidSrc ICU (Dub)",
+    "id": "vidsrc-sh-dub",
+    "name": "VidSrc SH (Dub)",
     "type": "embed",
     "audio": "dub",
-    "urlTemplate": "https://vidsrc.icu/embed/anime/{anilist_id}/{ep}/1",
+    "urlTemplate": "https://vidsrc.sh/embed/anime?mal={mal_id}&e={ep}&ds_lang=en",
     "enabled": true
   }
 ]
