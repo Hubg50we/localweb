@@ -396,7 +396,7 @@ function renderTrendingRail(animeList) {
 
     card.innerHTML = `
       <div class="rail-poster">
-        <img src="${anime.poster}" alt="${anime.title}" loading="lazy">
+        <img src="${anime.poster}" alt="${anime.title}" loading="lazy" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
         <div class="rail-badges">
           <span class="badge-sub">SUB</span>
           <span class="badge-dub">DUB</span>
@@ -430,7 +430,7 @@ function renderAnimeGrid(list) {
 
     card.innerHTML = `
       <div class="card-poster">
-        <img src="${anime.poster}" alt="${anime.title}" loading="lazy">
+        <img src="${anime.poster}" alt="${anime.title}" loading="lazy" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
         <div class="card-badges">
           <span class="badge-sub">SUB ${anime.subEpisodes || 12}</span>
           <span class="badge-dub">DUB ${anime.dubEpisodes || 12}</span>
@@ -464,7 +464,7 @@ function renderTop10(topList) {
 
     item.innerHTML = `
       <div class="top-10-rank">0${index + 1}</div>
-      <img src="${anime.poster}" alt="${anime.title}" class="top-10-poster" loading="lazy">
+      <img src="${anime.poster}" alt="${anime.title}" class="top-10-poster" loading="lazy" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
       <div class="top-10-info">
         <h4 title="${anime.title}">${anime.title}</h4>
         <div class="top-10-meta">
@@ -678,7 +678,7 @@ function renderContinueWatching() {
       <div class="continue-card" onclick="openWatchModal('${item.animeId}', ${item.episodeNumber})">
         <button class="continue-card-remove" onclick="event.stopPropagation(); removeWatchHistory('${item.animeId}')" title="Remove from History">✕</button>
         <div class="continue-card-thumb">
-          <img src="${item.cover}" alt="${item.title}" loading="lazy">
+          <img src="${item.cover}" alt="${item.title}" loading="lazy" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
           <div class="continue-play-overlay">
             <i data-lucide="play-circle"></i>
           </div>
@@ -870,7 +870,7 @@ function renderWatchlistDrawer() {
     const card = document.createElement('div');
     card.className = 'watchlist-card';
     card.innerHTML = `
-      <img src="${item.poster}" alt="${item.title}">
+      <img src="${item.poster}" alt="${item.title}" onerror="this.onerror=null;this.src='https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png'">
       <div class="watchlist-card-info">
         <h4>${item.title}</h4>
         <span style="font-size: 0.75rem; color: var(--accent-gold);">★ ${item.rating}</span>

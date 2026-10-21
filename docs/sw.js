@@ -1,5 +1,5 @@
-// HiAnime v5.2 Ultra Enterprise Service Worker
-const CACHE_NAME = 'hianime-v5-enterprise-v2';
+// HiAnime v5.6 Ultra Enterprise Service Worker
+const CACHE_NAME = 'hianime-v5-enterprise-v6';
 const STATIC_ASSETS = [
   './',
   './index.html',
