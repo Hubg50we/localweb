@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HiAnime.to - Watch Anime Online Free in HD</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ffbade'/><text y='70' x='50' text-anchor='middle' font-family='sans-serif' font-size='60' font-weight='bold' fill='%230f172a'>Hi</text></svg>">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ffbade">
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons & HLS.js for ani-cli live streams -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style id="dynamicSubtitleStyles"></style>
+</head>
+<body>
+  <!-- Neon Top Progress Bar -->
+  <div id="topProgressBar"></div>
+  <!-- Top Announcement Bar -->
+  <div class="top-bar">
+    <div class="top-bar-inner">
+      <span><i data-lucide="sparkles"></i> <strong>HiAnime v5.2 Ultra</strong> — High-Speed Ultra HD Anime Streaming (Zero Buffering, Multi-Server)</span>
+      <div class="top-links">
+        <a href="#" class="top-link" data-action="discord"><i data-lucide="message-square"></i> Discord</a>
+        <a href="#" class="top-link" data-action="telegram"><i data-lucide="send"></i> Telegram</a>
+        <a href="#" class="top-link" data-action="reddit"><i data-lucide="share-2"></i> Reddit</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navigation Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="nav-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+          <i data-lucide="menu"></i>
+        </button>
+        <a href="./" class="brand-logo">
+          <span class="logo-hi">Hi</span><span class="logo-anime">Anime</span>
+          <span class="logo-domain">.to</span>
+        </a>
+      </div>
+
+      <!-- Live Search Bar -->
+      <div class="nav-search">
+        <div class="search-box">
+          <i data-lucide="search" class="search-icon"></i>
+          <input type="text" id="searchInput" placeholder="Search anime, movies, genres... (e.g. Solo Leveling)" autocomplete="off">
+          <button class="palette-trigger-btn" id="paletteTriggerBtn" title="Command Palette (Ctrl+K)"><kbd>Ctrl+K</kbd></button>
+          <button class="filter-btn" id="filterBtn" title="Advanced Filter">
+            <i data-lucide="sliders-horizontal"></i> Filter
+          </button>
+        </div>
+        <!-- Search Results Dropdown -->
+        <div class="search-dropdown" id="searchDropdown"></div>
+      </div>
+
+      <!-- Navigation Actions -->
+      <div class="nav-right">
+        <!-- Otaku XP Rank Pill -->
+        <div class="xp-rank-pill" id="navXpPill" title="Otaku XP Rank & Progression">
+          <span class="xp-level-badge" id="navXpLevel">Lv 1</span>
+          <span class="xp-rank-name" id="navXpRank">Academy Student</span>
+        </div>
+        <button class="nav-action-btn quiz-nav-btn" id="navQuizBtn" title="Play Otaku Trivia Quiz (Win XP!)">
+          <i data-lucide="gamepad-2"></i>
+          <span>Quiz</span>
+        </button>
+        <a href="https://github.com/pystardust/ani-cli" target="_blank" class="nav-action-btn anicli-badge" title="Powered by pystardust/ani-cli">
+          <i data-lucide="terminal"></i>
+          <span>ani-cli</span>
+        </a>
+        <button class="nav-action-btn sfx-toggle-btn" id="navSfxToggle" title="UI Sound Effects (SFX)">
+          <i data-lucide="volume-2"></i>
+          <span>SFX</span>
+        </button>
+        <button class="nav-action-btn" id="randomAnimeBtn" title="Random Anime">
+          <i data-lucide="shuffle"></i>
+          <span>Random</span>
+        </button>
+        <button class="nav-action-btn" id="watchlistBtn" title="My Watchlist">
+          <i data-lucide="bookmark"></i>
+          <span>Watchlist</span>
+          <span class="badge" id="watchlistCount">0</span>
+        </button>
+        <div class="nav-item-wrapper" style="position: relative;">
+          <button class="nav-action-btn notify-btn" id="notifyBtn" title="Notifications">
+            <i data-lucide="bell"></i>
+            <span class="dot"></span>
+          </button>
+          <div class="nav-popover" id="notificationsPopover">
+            <div class="popover-header">
+              <h4><i data-lucide="bell"></i> Notifications</h4>
+              <button class="text-btn" id="clearNotifyBtn">Clear</button>
+            </div>
+            <div class="popover-body" id="notifyList">
+              <div class="notify-item" data-anime="solo-leveling" data-ep="4">
+                <i data-lucide="sparkles" class="notify-icon"></i>
+                <div>
+                  <strong>Solo Leveling</strong> Ep 4 is now available in 1080p!
+                  <span class="notify-time">2 hours ago</span>
+                </div>
+              </div>
+              <div class="notify-item" data-anime="jujutsu-kaisen-s2" data-ep="3">
+                <i data-lucide="film" class="notify-icon"></i>
+                <div>
+                  <strong>Jujutsu Kaisen Season 2</strong> Ep 3 is ready!
+                  <span class="notify-time">5 hours ago</span>
+                </div>
+              </div>
+              <div class="notify-item" data-anime="frieren" data-ep="2">
+                <i data-lucide="check-circle" class="notify-icon"></i>
+                <div>
+                  <strong>Frieren: Beyond Journey's End</strong> Ep 2 stream verified.
+                  <span class="notify-time">Yesterday</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-item-wrapper" style="position: relative;">
+          <div class="user-avatar" id="userAvatarBtn" title="HiAnime Member">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=otaku" alt="Avatar">
+          </div>
+          <div class="nav-popover user-popover" id="userPopover">
+            <div class="user-popover-header">
+              <img src="https://api.dicebear.com/7.x/bottts/svg?seed=otaku" alt="Avatar" class="user-popover-avatar">
+              <div>
+                <h4 style="margin: 0; color: #fff; font-size: 0.95rem;">Otaku Explorer</h4>
+                <span class="user-status-badge">VIP Member</span>
+              </div>
+            </div>
+            <div class="user-popover-stats">
+              <div class="stat-box">
+                <span class="stat-num" id="userWatchlistCount">0</span>
+                <span class="stat-label">Saved</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-num" id="userWatchedCount">12</span>
+                <span class="stat-label">Episodes</span>
+              </div>
+              <div class="stat-box" id="userXpBox">
+                <span class="stat-num" id="userXpTotal">0 XP</span>
+                <span class="stat-label" id="userXpRankLabel">Academy Student</span>
+              </div>
+            </div>
+            <div class="user-popover-links">
+              <a href="#" id="openWhoWatchingBtn"><i data-lucide="users"></i> Switch Profile (Who's Watching?)</a>
+              <a href="#" id="openAchievementsBtn"><i data-lucide="award"></i> Otaku Achievements (<span id="unlockedBadgesCount">0</span>/6)</a>
+              <a href="#" id="openQuizBtn"><i data-lucide="gamepad-2"></i> Play Otaku Trivia Quiz</a>
+              <a href="#" id="openTierListBtn"><i data-lucide="layers"></i> Otaku Tier List Maker</a>
+              <a href="#" id="openListImportExportBtn"><i data-lucide="upload-cloud"></i> Sync MAL / AniList Data</a>
+              <a href="#" id="openOtakuStatsBtn"><i data-lucide="bar-chart-2"></i> Otaku Wrapped & Stats</a>
+              <a href="#" id="openAdminStudioBtn"><i data-lucide="layout-dashboard"></i> Admin CMS Studio</a>
+              <a href="#" id="profileWatchlistLink"><i data-lucide="bookmark"></i> Open Watchlist</a>
+              <a href="#" id="profileRandomLink"><i data-lucide="shuffle"></i> Pick Random Anime</a>
+              <a href="#" id="profileSfxToggle"><i data-lucide="volume-2"></i> Sound Effects: <strong id="profileSfxStatus" style="margin-left:auto;color:var(--accent-cyan);">ON</strong></a>
+              <a href="#" id="profileReducedMotionToggle"><i data-lucide="zap"></i> Animations: <strong id="profileMotionStatus" style="margin-left:auto;color:var(--accent-pink);">Full 60fps</strong></a>
+              <a href="#" id="profileThemeToggle"><i data-lucide="contrast"></i> High Contrast Mode</a>
+              <div class="user-popover-section-label">Neon Themes</div>
+              <div class="theme-presets-picker" id="themePresetsPicker">
+                <button class="theme-dot active" data-theme="sakura" title="Sakura Pink" style="background: #ffbade;"></button>
+                <button class="theme-dot" data-theme="crimson" title="Cyberpunk Crimson" style="background: #ff2a5f;"></button>
+                <button class="theme-dot" data-theme="cyan" title="Electric Cyan" style="background: #00f0ff;"></button>
+                <button class="theme-dot" data-theme="purple" title="Gojo Purple" style="background: #9d4edd;"></button>
+                <button class="theme-dot" data-theme="gold" title="Solar Gold" style="background: #ffbe0b;"></button>
+              </div>
+              <a href="#" id="profileExportBackup"><i data-lucide="download"></i> Export Backup (JSON)</a>
+              <a href="#" id="profileImportBackup"><i data-lucide="upload"></i> Import Backup</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Secondary Category Navigation -->
+  <nav class="sub-nav">
+    <div class="sub-nav-inner">
+      <a href="#" class="active" data-filter="all"><i data-lucide="home"></i> Home</a>
+      <a href="#" data-filter="TV Series"><i data-lucide="tv"></i> Subbed Anime</a>
+      <a href="#" data-filter="dub"><i data-lucide="mic"></i> Dubbed Anime</a>
+      <a href="#" data-tab="airing"><i data-lucide="flame"></i> Top Airing</a>
+      <a href="#" data-tab="popular"><i data-lucide="trending-up"></i> Most Popular</a>
+      <a href="#" data-filter="Movie"><i data-lucide="film"></i> Movies</a>
+      <a href="#" data-tab="completed"><i data-lucide="check-circle-2"></i> Completed</a>
+    </div>
+  </nav>
+
+  <!-- Spotlight Carousel Hero -->
+  <section class="spotlight-section">
+    <div id="spotlightAmbientGlow" class="ambient-cinema-glow"></div>
+    <div class="spotlight-slider" id="spotlightSlider">
+      <!-- Slides injected by JavaScript -->
+    </div>
+    <!-- Slider Navigation Buttons -->
+    <button class="slider-btn prev" id="sliderPrev"><i data-lucide="chevron-left"></i></button>
+    <button class="slider-btn next" id="sliderNext"><i data-lucide="chevron-right"></i></button>
+    <div class="slider-dots" id="sliderDots"></div>
+  </section>
+
+  <!-- Trending Top 10 Rail -->
+  <section class="trending-rail-section">
+    <div class="section-header">
+      <h2 class="section-title"><i data-lucide="trending-up" class="title-icon"></i> Trending Now</h2>
+      <div class="rail-nav">
+        <button id="railPrev"><i data-lucide="arrow-left"></i></button>
+        <button id="railNext"><i data-lucide="arrow-right"></i></button>
+      </div>
+    </div>
+    <div class="trending-track-wrapper">
+      <div class="trending-track" id="trendingTrack">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Layout (Grid + Sidebar) -->
+  <main class="main-container">
+    <div class="content-left">
+      <!-- Category Tabs and Quick Genre Filter -->
+      <div class="filter-header">
+        <div class="category-tabs">
+          <button class="tab-btn active" data-tab="all">All Anime</button>
+          <button class="tab-btn" data-tab="popular">Most Popular</button>
+          <button class="tab-btn" data-tab="airing">Top Airing</button>
+          <button class="tab-btn" data-tab="completed">Latest Completed</button>
+        </div>
+        <div class="genre-pills" id="genrePills">
+          <button class="genre-pill active" data-genre="All">All</button>
+          <button class="genre-pill" data-genre="Action">Action</button>
+          <button class="genre-pill" data-genre="Adventure">Adventure</button>
+          <button class="genre-pill" data-genre="Fantasy">Fantasy</button>
+          <button class="genre-pill" data-genre="Supernatural">Supernatural</button>
+          <button class="genre-pill" data-genre="Comedy">Comedy</button>
+          <button class="genre-pill" data-genre="Drama">Drama</button>
+          <button class="genre-pill" data-genre="Sci-Fi">Sci-Fi</button>
+        </div>
+      </div>
+
+      <!-- Advanced Filter Panel (Toggled by Filter button) -->
+      <div class="advanced-filter-panel" id="advancedFilterPanel" style="display: none;">
+        <div class="adv-filter-grid">
+          <div class="adv-filter-group">
+            <label><i data-lucide="tv"></i> Type:</label>
+            <select id="advTypeFilter">
+              <option value="all">All Types</option>
+              <option value="TV Series">TV Series</option>
+              <option value="Movie">Movies</option>
+            </select>
+          </div>
+          <div class="adv-filter-group">
+            <label><i data-lucide="arrow-up-down"></i> Sort By:</label>
+            <select id="advSortFilter">
+              <option value="default">Default</option>
+              <option value="rating">Highest Rating</option>
+              <option value="name">A-Z Alphabetical</option>
+              <option value="episodes">Most Episodes</option>
+            </select>
+          </div>
+          <div class="adv-filter-group">
+            <label><i data-lucide="check-circle"></i> Status:</label>
+            <select id="advStatusFilter">
+              <option value="all">All Status</option>
+              <option value="Completed">Completed</option>
+              <option value="Currently Airing">Currently Airing</option>
+            </select>
+          </div>
+          <div class="adv-filter-actions">
+            <button class="btn-primary" id="applyAdvFilterBtn"><i data-lucide="check"></i> Apply</button>
+            <button class="btn-secondary" id="resetAdvFilterBtn"><i data-lucide="rotate-ccw"></i> Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Continue Watching History Section -->
+      <section class="continue-watching-section" id="continueWatchingSection" style="display: none;">
+        <div class="continue-header">
+          <h2 class="section-title"><i data-lucide="history" class="title-icon"></i> Continue Watching</h2>
+          <button class="clear-history-btn" id="clearHistoryBtn"><i data-lucide="trash-2"></i> Clear History</button>
+        </div>
+        <div class="continue-watching-track" id="continueWatchingTrack">
+          <!-- Injected by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Smart Personalized Recommendations Section -->
+      <section class="anime-section recommended-section" id="recommendedSection" style="display: none; margin-bottom: 28px;">
+        <div class="continue-header">
+          <h2 class="section-title"><i data-lucide="sparkles" class="title-icon" style="color: var(--accent-cyan);"></i> <span id="recommendationHeading">Recommended For You</span></h2>
+        </div>
+        <div class="anime-grid recommendations-grid" id="recommendationsGrid">
+          <!-- Injected by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Main Anime Cards Grid -->
+      <div class="anime-grid" id="animeGrid">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <aside class="content-right">
+      <!-- Top 10 Today/Week/Month Widget -->
+      <div class="sidebar-card top-10-card">
+        <div class="card-header">
+          <h3><i data-lucide="crown"></i> Top 10 Anime</h3>
+          <div class="rank-filter-tabs">
+            <span class="active">Today</span>
+            <span>Week</span>
+            <span>Month</span>
+          </div>
+        </div>
+        <div class="top-10-list" id="top10List">
+          <!-- Injected by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Genre Tag Cloud Widget -->
+      <div class="sidebar-card genres-card">
+        <div class="card-header">
+          <h3><i data-lucide="tags"></i> Popular Genres</h3>
+        </div>
+        <div class="genre-tags-cloud">
+          <a href="#" data-genre="Action">Action</a>
+          <a href="#" data-genre="Adventure">Adventure</a>
+          <a href="#" data-genre="Comedy">Comedy</a>
+          <a href="#" data-genre="Drama">Drama</a>
+          <a href="#" data-genre="Fantasy">Fantasy</a>
+          <a href="#" data-genre="Historical">Historical</a>
+          <a href="#" data-genre="Horror">Horror</a>
+          <a href="#" data-genre="Mystery">Mystery</a>
+          <a href="#" data-genre="Psychological">Psychological</a>
+          <a href="#" data-genre="Romance">Romance</a>
+          <a href="#" data-genre="Sci-Fi">Sci-Fi</a>
+          <a href="#" data-genre="Shounen">Shounen</a>
+          <a href="#" data-genre="Slice of Life">Slice of Life</a>
+          <a href="#" data-genre="Supernatural">Supernatural</a>
+          <a href="#" data-genre="Suspense">Suspense</a>
+        </div>
+      </div>
+
+      <!-- Stream Server Status Widget -->
+      <div class="sidebar-card status-card">
+        <div class="card-header">
+          <h3><i data-lucide="activity"></i> Gateway Status</h3>
+        </div>
+        <div class="status-items">
+          <div class="status-row">
+            <span><span class="status-indicator online"></span> VidCloud (1080p)</span>
+            <span class="status-val">Optimal</span>
+          </div>
+          <div class="status-row">
+            <span><span class="status-indicator online"></span> MegaCloud (4K)</span>
+            <span class="status-val">Optimal</span>
+          </div>
+          <div class="status-row">
+            <span><span class="status-indicator online"></span> StreamWish (Dub)</span>
+            <span class="status-val">Optimal</span>
+          </div>
+          <div class="status-row">
+            <span><span class="status-indicator online"></span> HD-1 Server</span>
+            <span class="status-val">Optimal</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Interactive HiAnime Watch Page / Player Modal -->
+  <div class="player-modal" id="playerModal">
+    <div class="player-overlay" id="playerOverlay"></div>
+    <div class="lights-off-overlay" id="lightsOffOverlay"></div>
+    <div class="player-container">
+      <div id="ambientCinemaGlow" class="ambient-cinema-glow"></div>
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2 id="modalAnimeTitle">Solo Leveling</h2>
+          <span class="ep-crumb" id="modalEpCrumb">Episode 1 - I'm Used to It</span>
+        </div>
+        
+        <!-- SUB/DUB Smart Audio Preference Header Toggle -->
+        <div class="header-center-controls">
+          <div class="audio-pref-pill-group" id="audioPrefGroup" title="Audio Language Preference">
+            <button type="button" class="audio-pref-btn active" data-pref="SUB" id="prefSubBtn"><i data-lucide="captions"></i> SUB</button>
+            <button type="button" class="audio-pref-btn" data-pref="DUB" id="prefDubBtn"><i data-lucide="mic"></i> DUB</button>
+          </div>
+        </div>
+
+        <button class="close-modal-btn" id="closeModalBtn" title="Close Player">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="player-body">
+        <!-- Video Screen Left -->
+        <div class="video-wrapper">
+          <div class="video-inner">
+            <!-- Dual-layer Player: Plyr + Hls.js native container and Embed Iframe -->
+            <div id="plyrWrapper" class="plyr-wrapper" style="display:none; width:100%; aspect-ratio:16/9; background:#0a0a0f; position:relative;">
+              <video id="neonHlsPlayer" class="plyr-player" playsinline controls crossorigin="anonymous"></video>
+            </div>
+            <iframe id="animeEmbedPlayer" src="" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write" referrerpolicy="origin"></iframe>
+
+            <!-- Dynamic AniSkip OP / ED Floating Overlay Button -->
+            <div class="aniskip-overlay" id="aniSkipOverlay" style="display:none;">
+              <button type="button" class="aniskip-btn" id="aniSkipBtn">
+                <i data-lucide="fast-forward"></i> <span id="aniSkipBtnText">Skip Intro ⏭</span>
+              </button>
+            </div>
+            <!-- Auto-Skip Notification Banner -->
+            <div class="skip-toast-banner" id="skipToastBanner" style="display:none;">
+              <i data-lucide="zap"></i> <span id="skipToastText">Auto-skipped intro!</span>
+            </div>
+          </div>
+
+          <!-- Active Stream Notification & Quick Fallback Switcher -->
+          <div class="stream-alert-banner">
+            <div class="stream-alert-left">
+              <i data-lucide="sparkles"></i>
+              <span id="streamActiveServerNotice">Playing via <strong>VidSrc Anime (SUB)</strong> — Full Anime Episodes.</span>
+            </div>
+            <div class="stream-alert-actions">
+              <button type="button" class="stream-quick-switch-btn" id="autoSelectServerBtn" title="Auto-Select Fastest Working Server" style="background: rgba(0, 240, 255, 0.15); border-color: var(--accent-cyan); color: #fff;">
+                <i data-lucide="zap"></i> Auto-Select Server
+              </button>
+              <label class="toggle-control auto-failover-toggle" title="Automatically switch server if stream fails or hangs">
+                <input type="checkbox" id="autoFailoverCheck">
+                <span><i data-lucide="zap"></i> Auto-Failover</span>
+              </label>
+              <button type="button" class="stream-quick-switch-btn" id="streamQuickSwitchBtn" title="Stream Not Working? Try Next Server">
+                <i data-lucide="refresh-cw"></i> Try Next Server
+              </button>
+            </div>
+          </div>
+
+          <!-- Video Controls & Server Selector -->
+          <div class="server-control-panel">
+            <div class="server-group">
+              <span class="server-group-label"><i data-lucide="server"></i> SUB:</span>
+              <button class="server-pill active" data-server="vidlink-sub" title="VidLink HD (Sub) - Fast 750ms"><i data-lucide="zap" style="width:12px;height:12px;vertical-align:middle;"></i> VidLink (Sub)</button>
+              <button class="server-pill" data-server="multiembed" title="MultiEmbed Universal Stream"><i data-lucide="play" style="width:12px;height:12px;vertical-align:middle;"></i> MultiEmbed</button>
+              <button class="server-pill" data-server="vidsrc-sh-sub" title="VidSrc SH (Sub)"><i data-lucide="shield-check" style="width:12px;height:12px;vertical-align:middle;"></i> VidSrc SH</button>
+              <button class="server-pill" data-server="vidsrc-me-sub" title="VidSrc Pro"><i data-lucide="radio" style="width:12px;height:12px;vertical-align:middle;"></i> VidSrc Pro</button>
+              <button class="server-pill" data-server="direct-hls" title="Direct HLS Stream via Plyr"><i data-lucide="tv" style="width:12px;height:12px;vertical-align:middle;"></i> Direct HLS</button>
+            </div>
+            <div class="server-group">
+              <span class="server-group-label"><i data-lucide="mic"></i> DUB & DIRECT:</span>
+              <button class="server-pill" data-server="vidlink-dub" title="VidLink HD (Dub) - English Audio"><i data-lucide="mic" style="width:12px;height:12px;vertical-align:middle;"></i> VidLink (Dub)</button>
+              <button class="server-pill" data-server="vidsrc-sh-dub" title="VidSrc SH (Dub)"><i data-lucide="mic-2" style="width:12px;height:12px;vertical-align:middle;"></i> VidSrc (Dub)</button>
+              <button class="server-pill" data-server="multiembed-dub" title="MultiEmbed Alternate"><i data-lucide="headphones" style="width:12px;height:12px;vertical-align:middle;"></i> MultiEmbed (Alt)</button>
+              <button class="server-pill" data-server="archive-stream" title="Archive.org Public Streams"><i data-lucide="archive" style="width:12px;height:12px;vertical-align:middle;"></i> Archive.org</button>
+              <button class="server-pill custom-stream-pill" id="openCustomStreamModalBtn" title="Mount local anime file or paste custom .m3u8/.mp4 stream"><i data-lucide="folder-symlink"></i> Custom / Local</button>
+            </div>
+          </div>
+
+          <div class="playback-toggles">
+              <button class="ep-nav-btn" id="prevEpBtn" title="Previous Episode (P)"><i data-lucide="skip-back"></i> Prev</button>
+              <button class="ep-nav-btn" id="nextEpBtn" title="Next Episode (N)">Next <i data-lucide="skip-forward"></i></button>
+              <button class="player-tool-btn" id="lightsOffBtn" title="Lights Off (L)"><i data-lucide="lightbulb"></i> Lights Off</button>
+              <button class="player-tool-btn" id="theaterModeBtn" title="Theater Mode (T)"><i data-lucide="maximize-2"></i> Theater</button>
+              <button class="player-tool-btn party-btn-highlight" id="watchPartyBtn" title="Start Watch Party Room"><i data-lucide="users"></i> Watch Party</button>
+              <button class="player-tool-btn pip-btn-highlight" id="miniPlayerBtn" title="Picture-in-Picture Mini-Player"><i data-lucide="picture-in-picture-2"></i> Mini-Player</button>
+              <button class="player-tool-btn sandbox-lock-btn" id="sandboxLockBtn" title="Toggle Popup Ad Lock (Iframe Sandbox)"><i data-lucide="shield"></i> Ad Lock: <span id="sandboxLockStateText">OFF</span></button>
+              <label class="toggle-control">
+                <input type="checkbox" id="autoNextCheck" checked>
+                <span>Auto Next</span>
+              </label>
+              <label class="toggle-control">
+                <input type="checkbox" id="autoPlayCheck" checked>
+                <span>Auto Play</span>
+              </label>
+            </div>
+
+          <!-- Direct Skips, Speed, Subtitle & Quality Toolbar -->
+          <div class="player-direct-toolbar" id="playerDirectToolbar">
+            <div class="direct-skip-group">
+              <button type="button" class="direct-btn" id="rewind10Btn" title="Rewind 10 Seconds (ArrowLeft / J)">
+                <i data-lucide="rotate-ccw"></i> -10s
+              </button>
+              <button type="button" class="direct-btn" id="forward10Btn" title="Forward 10 Seconds (ArrowRight / L)">
+                <i data-lucide="rotate-cw"></i> +10s
+              </button>
+              <button type="button" class="direct-btn skip-85-highlight" id="quickSkip85Btn" title="Quick Skip Anime Opening (S)">
+                <i data-lucide="fast-forward"></i> +85s Skip Intro
+              </button>
+              <label class="toggle-control auto-skip-toggle" title="Automatically skip OP/ED when detected by AniSkip">
+                <input type="checkbox" id="autoSkipCheck" checked>
+                <span>Auto-Skip (AniSkip)</span>
+              </label>
+            </div>
+
+            <div class="direct-settings-group">
+              <!-- Playback Speed Dropdown -->
+              <div class="player-dropdown-wrap">
+                <button type="button" class="direct-btn" id="speedDropdownBtn" title="Playback Speed ([ / ])">
+                  <i data-lucide="gauge"></i> <span id="currentSpeedLabel">1.0x</span>
+                </button>
+                <div class="player-dropdown-menu" id="speedMenu">
+                  <button type="button" class="dropdown-item" data-speed="0.25">0.25x</button>
+                  <button type="button" class="dropdown-item" data-speed="0.5">0.5x</button>
+                  <button type="button" class="dropdown-item" data-speed="0.75">0.75x</button>
+                  <button type="button" class="dropdown-item active" data-speed="1.0">1.0x (Normal)</button>
+                  <button type="button" class="dropdown-item" data-speed="1.25">1.25x</button>
+                  <button type="button" class="dropdown-item" data-speed="1.5">1.5x</button>
+                  <button type="button" class="dropdown-item" data-speed="1.75">1.75x</button>
+                  <button type="button" class="dropdown-item" data-speed="2.0">2.0x</button>
+                </div>
+              </div>
+
+              <!-- HLS Video Quality Dropdown -->
+              <div class="player-dropdown-wrap">
+                <button type="button" class="direct-btn" id="qualityDropdownBtn" title="Stream Resolution Quality">
+                  <i data-lucide="sliders"></i> <span id="currentQualityLabel">Auto</span>
+                </button>
+                <div class="player-dropdown-menu" id="qualityMenu">
+                  <button type="button" class="dropdown-item active" data-quality="-1">Auto (ABR)</button>
+                  <button type="button" class="dropdown-item" data-quality="1080">1080p Full HD</button>
+                  <button type="button" class="dropdown-item" data-quality="720">720p HD</button>
+                  <button type="button" class="dropdown-item" data-quality="480">480p SD</button>
+                  <button type="button" class="dropdown-item" data-quality="360">360p Low</button>
+                </div>
+              </div>
+
+              <!-- Subtitle & Caption Styler Dropdown -->
+              <div class="player-dropdown-wrap">
+                <button type="button" class="direct-btn" id="subtitleDropdownBtn" title="Subtitles & Closed Captions (C)">
+                  <i data-lucide="subtitles"></i> <span id="currentSubtitleLabel">Subtitles</span>
+                </button>
+                <div class="player-dropdown-menu subtitle-menu" id="subtitleMenu">
+                  <div class="menu-section-header">Captions Track</div>
+                  <button type="button" class="dropdown-item active" data-track="-1">Off</button>
+                  <button type="button" class="dropdown-item" data-track="en">English [CC]</button>
+                  <button type="button" class="dropdown-item" data-track="ja">Japanese</button>
+                  <button type="button" class="dropdown-item" data-track="es">Spanish</button>
+                  <div class="menu-divider"></div>
+                  <label class="dropdown-upload-btn" title="Load local .srt or .vtt subtitle file">
+                    <i data-lucide="upload"></i> Upload .VTT / .SRT
+                    <input type="file" id="localSubtitleInput" accept=".vtt,.srt" style="display:none;">
+                  </label>
+                  <button type="button" class="dropdown-item" id="openSubStylerBtn">
+                    <i data-lucide="palette"></i> Caption Styler...
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Anime Overview Under Player -->
+          <div class="anime-watch-meta">
+            <div class="meta-row">
+              <span class="meta-badge" id="modalScore">★ 9.2</span>
+              <span class="meta-badge" id="modalType">TV Series</span>
+              <span class="meta-badge" id="modalStudio">A-1 Pictures</span>
+              <span class="meta-badge" id="modalSeason">Winter 2024</span>
+              <button class="watchlist-action-btn" id="modalBookmarkBtn">
+                <i data-lucide="bookmark-plus"></i> Add to Watchlist
+              </button>
+            </div>
+            <p class="modal-synopsis" id="modalSynopsis"></p>
+          </div>
+
+          <!-- Interactive Multi-Tab Section Under Player -->
+          <div class="player-multitab-container">
+            <div class="player-multitab-nav">
+              <button type="button" class="player-tab-btn active" data-tab="tab-episodes"><i data-lucide="list"></i> Episodes</button>
+              <button type="button" class="player-tab-btn" data-tab="tab-cast"><i data-lucide="users"></i> Characters & Cast</button>
+              <button type="button" class="player-tab-btn" data-tab="tab-trailer"><i data-lucide="film"></i> Official Trailer</button>
+              <button type="button" class="player-tab-btn" data-tab="tab-community"><i data-lucide="message-square"></i> Comments & Bookmarks</button>
+              <button type="button" class="player-tab-btn" data-tab="tab-manga" id="tabMangaBtn"><i data-lucide="book-open"></i> Read Manga</button>
+            </div>
+
+            <!-- Tab 1: Episode Details View -->
+            <div class="player-tab-content active" id="tab-episodes">
+              <div class="tab-episodes-inner">
+                <div class="current-ep-header">
+                  <h3 id="currentEpHeaderTitle">Episode 1 - I'm Used to It</h3>
+                  <div class="current-ep-badges">
+                    <span class="badge-air-date" id="currentEpAirDate"><i data-lucide="calendar"></i> Aired: 2024-01-07</span>
+                    <span class="badge-canon" id="currentEpCanonBadge">CANON</span>
+                  </div>
+                </div>
+                <div class="ep-grid-quick-access" id="epGridQuickAccess">
+                  <!-- Injected by JavaScript -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Character & Voice Actor Cast -->
+            
+            <!-- Tab 4: Manga Reader View -->
+            <div class="player-tab-content" id="tab-manga">
+              <div class="manga-tab-container">
+                <div class="manga-reader-toolbar">
+                  <div class="manga-toolbar-group">
+                    <label style="font-size:0.8rem; color:var(--text-muted);"><i data-lucide="book"></i> Chapter:</label>
+                    <select id="mangaChapterSelect" class="manga-select"></select>
+                  </div>
+                  <div class="manga-toolbar-group">
+                    <button type="button" class="manga-tool-btn active" id="mangaModeWebtoonBtn" title="Webtoon Scroll Mode"><i data-lucide="scroll"></i> Webtoon</button>
+                    <button type="button" class="manga-tool-btn" id="mangaModePagedBtn" title="Single Page Mode"><i data-lucide="file-text"></i> Paged</button>
+                    <button type="button" class="manga-tool-btn" id="mangaFullscreenBtn" title="Fullscreen Reader"><i data-lucide="maximize"></i></button>
+                  </div>
+                </div>
+                <div class="manga-viewer-stage webtoon-mode" id="mangaViewerStage">
+                  <!-- Injected by JavaScript -->
+                </div>
+                <div class="manga-paged-nav" id="mangaPagedNav" style="display:none;">
+                  <button type="button" class="manga-tool-btn" id="mangaPrevPageBtn"><i data-lucide="chevron-left"></i> Prev</button>
+                  <span class="manga-page-counter" id="mangaPageCounter">Page 1 / 1</span>
+                  <button type="button" class="manga-tool-btn" id="mangaNextPageBtn">Next <i data-lucide="chevron-right"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="player-tab-content" id="tab-cast">
+              <div class="cast-tab-header">
+                <h3><i data-lucide="users"></i> Characters & Voice Actors</h3>
+                <span class="cast-lang-pill">Japanese Dub Cast</span>
+              </div>
+              <div class="cast-grid" id="castGrid">
+                <!-- Injected by JavaScript -->
+              </div>
+            </div>
+
+            <!-- Tab 3: Official Promo & Visual Preview -->
+            <div class="player-tab-content" id="tab-trailer">
+              <div class="trailer-tab-header">
+                <h3><i data-lucide="film"></i> Official Promo & Visual Preview</h3>
+                <span class="preview-badge" style="display:inline-flex; align-items:center; gap:6px; font-size:0.75rem; background:rgba(0,255,204,0.15); color:var(--accent-cyan); padding:4px 8px; border-radius:12px; font-weight:700;"><i data-lucide="shield-check" style="width:14px; height:14px;"></i> 100% Native HTML5</span>
+              </div>
+              <div class="trailer-wrapper" id="trailerWrapper">
+                <video id="trailerVideoPlayer" class="trailer-native-player" controls playsinline preload="metadata" poster="" style="width: 100%; height: 100%; max-height: 480px; object-fit: cover;"></video>
+                <div id="trailerPlaceholder" class="trailer-empty-state" style="display:none; text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                  <i data-lucide="clapperboard" style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.6;"></i>
+                  <h4 style="color: #fff; font-size: 1rem; margin-bottom: 6px;">Visual Promo Preview</h4>
+                  <p id="trailerPlaceholderText" style="font-size: 0.85rem;">Official promotional visual preview for this anime title.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 4: Community & Tools Panel -->
+            <div class="player-tab-content" id="tab-community">
+              <div class="community-tools-panel">
+                <div class="rating-bookmark-row">
+                  <div class="star-rating-box">
+                    <span class="rating-label"><i data-lucide="star"></i> Rate this Anime:</span>
+                    <div class="star-rating" id="starRatingWidget">
+                      <button class="star-btn" data-star="1" title="1 Star">★</button>
+                      <button class="star-btn" data-star="2" title="2 Stars">★</button>
+                      <button class="star-btn" data-star="3" title="3 Stars">★</button>
+                      <button class="star-btn" data-star="4" title="4 Stars">★</button>
+                      <button class="star-btn" data-star="5" title="5 Stars">★</button>
+                    </div>
+                    <span class="user-rating-text" id="userRatingText">Not rated yet</span>
+                  </div>
+                  <div class="bookmark-tools">
+                    <button class="tool-btn-highlight" id="bookmarkSceneBtn"><i data-lucide="bookmark-plus"></i> Bookmark Scene</button>
+                  </div>
+                </div>
+
+                <!-- Timestamp Bookmarks Container -->
+                <div class="bookmarks-container" id="bookmarksContainer">
+                  <div class="bookmarks-header">
+                    <h4><i data-lucide="bookmark"></i> Saved Scene Bookmarks</h4>
+                    <span class="bookmarks-count" id="bookmarksCount">0 saved</span>
+                  </div>
+                  <div class="bookmarks-list" id="bookmarksList"></div>
+                </div>
+
+                <!-- Episode Discussion & Comments -->
+                <div class="episode-comments-section" id="commentsSection">
+                  <div class="comments-header">
+                    <div class="comments-title">
+                      <h3><i data-lucide="message-square"></i> Episode Discussion</h3>
+                      <span class="comments-count" id="commentsCount">0 comments</span>
+                    </div>
+                    <div class="comments-notice-badge">
+                      <span><i data-lucide="shield-alert"></i> Spoiler tags blur hidden text</span>
+                    </div>
+                  </div>
+
+                  <form class="comment-form" id="commentForm">
+                    <div class="comment-form-inputs">
+                      <input type="text" id="commentUsername" placeholder="Your name (e.g. OtakuHero)" maxlength="25" required>
+                      <label class="spoiler-toggle">
+                        <input type="checkbox" id="commentSpoilerCheck">
+                        <span><i data-lucide="eye-off"></i> Contains Spoiler</span>
+                      </label>
+                    </div>
+                    <div class="comment-textarea-wrap">
+                      <textarea id="commentText" placeholder="Drop your reaction, theory, or review for this episode..." rows="2" required></textarea>
+                      <button type="submit" class="comment-submit-btn" id="submitCommentBtn">
+                        <i data-lucide="send"></i> Post Comment
+                      </button>
+                    </div>
+                  </form>
+
+                  <div class="comments-list" id="commentsList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Similar Anime Rail in Player Modal -->
+          <div class="similar-anime-rail-wrap" id="similarAnimeRailWrap">
+            <div class="similar-rail-header">
+              <h4><i data-lucide="compass" style="color:var(--accent-pink);width:18px;height:18px;vertical-align:middle;"></i> Similar Anime You Might Like</h4>
+            </div>
+            <div class="similar-anime-rail" id="similarAnimeRail">
+              <!-- Injected by JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Episodes Selector Sidebar Right -->
+        <div class="episodes-sidebar">
+          <div class="episodes-header">
+            <h3>List of Episodes</h3>
+            <div class="ep-search">
+              <input type="text" id="epSearchInput" placeholder="Filter Ep...">
+            </div>
+          </div>
+          <div class="episodes-list" id="episodesList">
+            <!-- Injected by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subtitle Styler Modal -->
+  <div class="player-modal sub-styler-modal" id="subStylerModal" style="display:none;">
+    <div class="player-overlay" id="subStylerOverlay"></div>
+    <div class="player-container sub-styler-container">
+      <div class="player-header">
+        <h4 style="color:#fff; font-family:'Space Grotesk',sans-serif; display:flex; align-items:center; gap:8px;">
+          <i data-lucide="type"></i> Subtitle & Caption Styler
+        </h4>
+        <button type="button" class="close-modal-btn" id="closeSubStylerBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="sub-styler-body">
+        <div class="sub-preview-box">
+          <div class="sub-preview-screen">
+            <span class="sub-preview-text" id="subPreviewText">Solo Leveling: "Arise" [Subtitle Preview]</span>
+          </div>
+        </div>
+        <div class="sub-styler-control">
+          <label>Font Size</label>
+          <div class="style-choice-group" id="subFontSizeGroup">
+            <button type="button" class="style-choice-btn" data-val="100%">Small (100%)</button>
+            <button type="button" class="style-choice-btn active" data-val="125%">Medium (125%)</button>
+            <button type="button" class="style-choice-btn" data-val="150%">Large (150%)</button>
+          </div>
+        </div>
+        <div class="sub-styler-control">
+          <label>Text Color</label>
+          <div class="style-choice-group" id="subTextColorGroup">
+            <button type="button" class="style-choice-btn active" data-val="#ffffff">White</button>
+            <button type="button" class="style-choice-btn" data-val="#fffa65">Yellow</button>
+            <button type="button" class="style-choice-btn" data-val="#00f0ff">Cyan</button>
+          </div>
+        </div>
+        <div class="sub-styler-control">
+          <label>Background Box Opacity</label>
+          <div class="style-choice-group" id="subBgOpacityGroup">
+            <button type="button" class="style-choice-btn" data-val="0">0% (None)</button>
+            <button type="button" class="style-choice-btn active" data-val="0.5">50% (Subtle)</button>
+            <button type="button" class="style-choice-btn" data-val="0.85">85% (Solid)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Stream / Local Video File Loader Modal -->
+  <div class="player-modal custom-stream-modal" id="customStreamModal" style="display:none;">
+    <div class="player-overlay" id="customStreamOverlay"></div>
+    <div class="player-container custom-stream-container" style="max-width: 600px;">
+      <div class="player-header">
+        <h4 style="color:#fff; font-family:'Space Grotesk',sans-serif; display:flex; align-items:center; gap:8px;">
+          <i data-lucide="folder-symlink"></i> Load Custom Stream or Local File
+        </h4>
+        <button type="button" class="close-modal-btn" id="closeCustomStreamBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="custom-stream-body" style="padding: 20px;">
+        <div class="custom-stream-tabs" style="display:flex; gap:10px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+          <button type="button" class="btn-tab active" id="tabCustomUrlBtn" style="padding: 6px 14px; background: var(--accent-pink); color: #fff; border-radius: 6px; font-weight: 600;"><i data-lucide="link"></i> Direct URL / M3U8</button>
+          <button type="button" class="btn-tab" id="tabCustomLocalBtn" style="padding: 6px 14px; background: var(--bg-tertiary); color: var(--text-muted); border-radius: 6px; font-weight: 600;"><i data-lucide="hard-drive"></i> Local File Mount</button>
+        </div>
+
+        <!-- Tab 1: Direct URL -->
+        <div id="customUrlTabContent">
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">Paste any direct HLS (.m3u8), MP4, WebM, or embed URL to play directly in the HiAnime player:</p>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="color: var(--text-secondary); font-size: 0.85rem;">Stream URL *</label>
+            <input type="url" id="customStreamUrlInput" placeholder="https://example.com/stream.m3u8 or https://..." style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-color); color:#fff; padding:10px 14px; border-radius:6px; font-size:0.9rem;">
+          </div>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="color: var(--text-secondary); font-size: 0.85rem;">Optional Subtitle URL (.vtt / .srt)</label>
+            <input type="url" id="customSubtitleUrlInput" placeholder="https://example.com/subs.vtt" style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-color); color:#fff; padding:10px 14px; border-radius:6px; font-size:0.9rem;">
+          </div>
+          <button type="button" class="tool-btn-highlight" id="playCustomUrlBtn" style="width:100%; padding: 12px; font-size: 0.95rem; font-weight: 700;">
+            <i data-lucide="play"></i> Play Custom Stream
+          </button>
+        </div>
+
+        <!-- Tab 2: Local Video Mount -->
+        <div id="customLocalTabContent" style="display:none;">
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">Select a local video file from your computer (.mp4, .mkv, .webm) and an optional subtitle file. Plays offline natively via HTML5 File API with full AniSkip support:</p>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="color: var(--text-secondary); font-size: 0.85rem;">Local Video File * (.mp4, .mkv, .webm)</label>
+            <input type="file" id="customLocalVideoInput" accept="video/mp4,video/webm,video/x-matroska,video/*" style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:6px;">
+          </div>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="color: var(--text-secondary); font-size: 0.85rem;">Optional Subtitle File (.vtt, .srt)</label>
+            <input type="file" id="customLocalSubInput" accept=".vtt,.srt" style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:6px;">
+          </div>
+          <button type="button" class="tool-btn-highlight" id="playCustomLocalBtn" style="width:100%; padding: 12px; font-size: 0.95rem; font-weight: 700;">
+            <i data-lucide="folder-check"></i> Mount & Play Local File
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Watchlist Drawer -->
+  <div class="drawer" id="watchlistDrawer">
+    <div class="drawer-header">
+      <h3><i data-lucide="bookmark"></i> My Watchlist</h3>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="clear-watchlist-btn" id="clearWatchlistBtn" title="Clear All">Clear All</button>
+        <button class="close-drawer-btn" id="closeDrawerBtn"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    <div class="drawer-backup-bar">
+      <button class="backup-btn" id="exportBackupBtn"><i data-lucide="download"></i> Export Backup (JSON)</button>
+      <button class="backup-btn" id="importBackupBtn"><i data-lucide="upload"></i> Import Backup</button>
+      <input type="file" id="importFileInput" accept=".json" style="display: none;">
+    </div>
+    <div class="drawer-body" id="watchlistItems">
+      <!-- Injected by JavaScript -->
+    </div>
+  </div>
+
+  <!-- Watch Party Live Side-Chat Drawer -->
+  <div class="drawer watch-party-drawer" id="watchPartyDrawer">
+    <div class="drawer-header">
+      <h3><i data-lucide="users"></i> Watch Party Room</h3>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="tool-btn-sm" id="copyPartyLinkBtn" title="Copy Invite Link"><i data-lucide="link"></i> Copy Link</button>
+        <button class="close-drawer-btn" id="closePartyDrawerBtn"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    <div class="party-room-info">
+      <div class="party-room-badge">
+        <span>Room Code:</span> <strong id="partyRoomCode">---</strong>
+      </div>
+      <div class="sync-badge" id="partySyncBadge">
+        <i data-lucide="radio"></i> <span>Live Syncing</span>
+      </div>
+    </div>
+    <div class="party-chat-body" id="partyChatMessages">
+      <!-- Messages injected by JavaScript -->
+    </div>
+    <form class="party-chat-form" id="partyChatForm">
+      <input type="text" id="partyChatInput" placeholder="Chat with watch party..." autocomplete="off" required>
+      <button type="submit" class="party-send-btn" title="Send message"><i data-lucide="send"></i></button>
+    </form>
+  </div>
+
+  <!-- General Information & Community Modal -->
+  <div class="player-modal" id="infoModal">
+    <div class="player-overlay" id="infoOverlay"></div>
+    <div class="player-container info-container">
+      <div class="player-header">
+        <h3 id="infoModalTitle" style="color: #fff; font-family: 'Space Grotesk', sans-serif;">Information</h3>
+        <button class="close-modal-btn" id="closeInfoModalBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div id="infoModalBody" class="info-modal-body">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Command Palette Modal (Ctrl+K) -->
+  <div class="command-palette-modal" id="commandPaletteModal">
+    <div class="palette-overlay" id="paletteOverlay"></div>
+    <div class="palette-container">
+      <div class="palette-search-bar">
+        <i data-lucide="terminal" class="palette-search-icon"></i>
+        <input type="text" id="paletteInput" placeholder="Type a command or search anime... (↑/↓ navigate, Enter run, ESC close)" autocomplete="off">
+        <span class="palette-badge">ESC</span>
+      </div>
+      <div class="palette-results" id="paletteResults">
+        <!-- Injected by JavaScript -->
+      </div>
+      <div class="palette-footer">
+        <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+        <span><kbd>↵</kbd> Execute</span>
+        <span><kbd>ESC</kbd> Close</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Built-In Admin Studio / CMS Modal -->
+  <div class="player-modal" id="adminStudioModal">
+    <div class="player-overlay" id="adminStudioOverlay"></div>
+    <div class="player-container admin-container">
+      <div class="player-header">
+        <div class="admin-header-title">
+          <h3><i data-lucide="layout-dashboard"></i> HiAnime Admin CMS Studio</h3>
+          <span class="admin-stats-pill" id="adminShowsCount">54 Shows</span>
+        </div>
+        <button class="close-modal-btn" id="closeAdminStudioBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="admin-body">
+        <div class="admin-tabs" id="adminTabs">
+          <button class="admin-tab-btn active" data-tab="catalog"><i data-lucide="film"></i> Manage Catalog</button>
+          <button class="admin-tab-btn" data-tab="add"><i data-lucide="plus-circle"></i> Add / Edit Anime</button>
+          <button class="admin-tab-btn" data-tab="spotlight"><i data-lucide="sparkles"></i> Spotlight Manager</button>
+          <button class="admin-tab-btn" data-tab="settings"><i data-lucide="server"></i> Backend Bridge</button>
+          <button class="admin-tab-btn" data-tab="providers"><i data-lucide="radio"></i> Stream Providers</button>
+        </div>
+
+        <!-- Tab 1: Catalog Table -->
+        <div class="admin-tab-content active" id="adminTabCatalog">
+          <div class="admin-toolbar">
+            <input type="text" id="adminCatalogSearch" placeholder="Filter database shows by title or genre...">
+            <button class="tool-btn-highlight" id="adminAddNewBtn"><i data-lucide="plus"></i> New Show</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Poster</th>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Episodes</th>
+                  <th>Spotlight</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminCatalogTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 2: Add/Edit Form -->
+        <div class="admin-tab-content" id="adminTabAdd">
+          <form class="admin-form" id="adminAnimeForm">
+            <input type="hidden" id="adminEditId" value="">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label>Anime Title *</label>
+                <input type="text" id="adminFormTitle" required placeholder="e.g. Kaiju No. 8">
+              </div>
+              <div class="form-group flex-1">
+                <label>Type</label>
+                <select id="adminFormType">
+                  <option value="TV Series">TV Series</option>
+                  <option value="Movie">Movie</option>
+                  <option value="OVA">OVA</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Poster / Cover URL</label>
+                <input type="url" id="adminFormCover" placeholder="https://cdn.myanimelist.net/images/...">
+              </div>
+              <div class="form-group">
+                <label>Hero Banner URL</label>
+                <input type="url" id="adminFormBanner" placeholder="https://images.alphacoders.com/...">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Episode Count</label>
+                <input type="number" id="adminFormEpisodes" min="1" max="1500" value="12">
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="adminFormStatus">
+                  <option value="Completed">Completed</option>
+                  <option value="Currently Airing">Currently Airing</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Genres (comma separated)</label>
+                <input type="text" id="adminFormGenres" placeholder="Action, Fantasy, Sci-Fi">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Synopsis</label>
+              <textarea id="adminFormSynopsis" rows="3" placeholder="Plot description..."></textarea>
+            </div>
+            <div class="form-group-checkbox">
+              <label>
+                <input type="checkbox" id="adminFormSpotlight">
+                <span>Feature in Homepage Spotlight Hero Carousel</span>
+              </label>
+            </div>
+            <div class="admin-form-actions">
+              <button type="submit" class="admin-submit-btn" id="adminSaveBtn"><i data-lucide="save"></i> Save Show to Catalog</button>
+              <button type="button" class="admin-cancel-btn" id="adminResetBtn">Reset Form</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Tab 3: Spotlight Manager -->
+        <div class="admin-tab-content" id="adminTabSpotlight">
+          <div class="spotlight-manager-header">
+            <p>Click "Toggle Spotlight" on any show below to feature it on the homepage carousel (recommended 4-6 titles).</p>
+          </div>
+          <div class="spotlight-manager-grid" id="spotlightManagerGrid"></div>
+        </div>
+
+        <!-- Tab 4: Backend Bridge Settings -->
+        <div class="admin-tab-content" id="adminTabSettings">
+          <div class="spotlight-manager-header">
+            <p>Configure and monitor your production Render Node.js backend bridge for GitHub Pages and remote client sync.</p>
+          </div>
+          <div class="admin-form" style="max-width: 650px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+              <label>Render Backend API URL</label>
+              <input type="url" id="adminBackendUrlInput" placeholder="https://hianime-localweb.onrender.com" value="">
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">Leave blank or use default for automatic local/Render detection.</small>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="tool-btn-highlight" id="adminSaveBackendUrlBtn"><i data-lucide="save"></i> Save URL</button>
+              <button type="button" class="btn-secondary" id="adminPingBackendBtn"><i data-lucide="activity"></i> Ping /api/health</button>
+              <span id="adminBackendStatusPill" style="padding: 6px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; background: var(--bg-surface); color: var(--text-muted);">Status: Unknown</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 5: Dynamic Streaming Providers Registry -->
+        <div class="admin-tab-content" id="adminTabProviders">
+          <div class="spotlight-manager-header">
+            <p>Configure dynamic streaming server templates. Supports placeholders: <code>{anilist_id}</code>, <code>{mal_id}</code>, <code>{slug}</code>, <code>{title}</code>, <code>{ep}</code>, and <code>{audio}</code>.</p>
+          </div>
+          <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+              <label>Providers Registry (JSON Configuration)</label>
+              <textarea id="adminProvidersJsonTextarea" rows="12" style="width: 100%; font-family: monospace; font-size: 0.85rem; background: var(--bg-tertiary); color: #00ffcc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;"></textarea>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="tool-btn-highlight" id="adminSaveProvidersBtn"><i data-lucide="save"></i> Save Providers Registry</button>
+              <button type="button" class="btn-secondary" id="adminResetProvidersBtn"><i data-lucide="rotate-ccw"></i> Reset Defaults</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Analytics & Otaku Wrapped Dashboard Modal -->
+  <div class="player-modal" id="otakuWrappedModal">
+    <div class="player-overlay" id="otakuWrappedOverlay"></div>
+    <div class="player-container wrapped-container">
+      <div class="player-header">
+        <div class="wrapped-header-title">
+          <h3><i data-lucide="sparkles"></i> Otaku Wrapped & User Analytics</h3>
+          <span class="user-status-badge">Live Profile Insights</span>
+        </div>
+        <button class="close-modal-btn" id="closeOtakuWrappedBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="wrapped-body" id="otakuWrappedBody">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Netflix-Style "Who's Watching?" Profile Selection Modal -->
+  <div class="who-watching-modal" id="whoIsWatchingModal">
+    <div class="who-watching-overlay" id="whoIsWatchingOverlay"></div>
+    <div class="who-watching-container">
+      <h1 class="who-watching-title">Who's Watching?</h1>
+      <div class="profiles-grid" id="profilesGrid">
+        <!-- Rendered by JavaScript -->
+      </div>
+      <div class="who-watching-actions">
+        <button class="manage-profiles-btn" id="manageProfilesBtn">Manage Profiles</button>
+        <button class="add-profile-btn-outline" id="addProfileBtn">+ Add Profile</button>
+        <button class="who-done-btn" id="doneProfilesBtn" style="display: none;">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Edit / Create Modal -->
+  <div class="player-modal" id="profileEditModal">
+    <div class="player-overlay" id="profileEditOverlay"></div>
+    <div class="player-container profile-edit-container">
+      <div class="player-header">
+        <h3 id="profileEditModalTitle" style="color: #fff; font-family: 'Space Grotesk', sans-serif;">Add Profile</h3>
+        <button class="close-modal-btn" id="closeProfileEditBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="profile-edit-body">
+        <form id="profileForm">
+          <input type="hidden" id="editProfileId" value="">
+          <div class="avatar-selection-area">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=otaku" alt="Selected Avatar" class="profile-preview-avatar" id="profilePreviewAvatar">
+            <div class="avatar-choices" id="avatarChoices">
+              <button type="button" class="avatar-choice-btn active" data-avatar="otaku"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=otaku" alt="otaku"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="slayer"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=slayer" alt="slayer"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="chibi"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=chibi" alt="chibi"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="ninja"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=ninja" alt="ninja"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="cyber"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=cyber" alt="cyber"></button>
+              <button type="button" class="avatar-choice-btn" data-avatar="mecha"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=mecha" alt="mecha"></button>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 16px;">
+            <label>Profile Name *</label>
+            <input type="text" id="profileNameInput" required maxlength="25" placeholder="e.g. Anime Fan">
+          </div>
+          <div class="form-group" style="margin-top: 14px;">
+            <label>Preferred Audio Language</label>
+            <select id="profileAudioPrefSelect" style="width: 100%; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: #fff; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88rem; outline: none;">
+              <option value="SUB">Subbed (Japanese Audio + Subtitles)</option>
+              <option value="DUB">Dubbed (English Voiceover)</option>
+            </select>
+          </div>
+          <div class="admin-form-actions" style="margin-top: 20px; display: flex; justify-content: space-between;">
+            <button type="submit" class="admin-submit-btn" id="saveProfileBtn"><i data-lucide="check"></i> Save Profile</button>
+            <button type="button" class="admin-action-btn del" id="deleteProfileBtn" style="display:none; color: #ff4757; font-size: 0.85rem;"><i data-lucide="trash-2"></i> Delete Profile</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Draggable Picture-in-Picture Mini-Player -->
+  <div class="floating-mini-player" id="floatingMiniPlayer">
+    <div class="mini-player-header" id="miniPlayerDragHandle">
+      <div class="mini-player-title">
+        <i data-lucide="tv" class="mini-icon"></i>
+        <span id="miniAnimeTitle">Anime Title</span>
+        <span class="mini-ep-crumb" id="miniEpCrumb">EP 1</span>
+      </div>
+      <div class="mini-player-actions">
+        <button class="mini-btn" id="miniExpandBtn" title="Expand to Full Player"><i data-lucide="maximize-2"></i></button>
+        <button class="mini-btn" id="miniCloseBtn" title="Close Mini Player"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    <div class="mini-screen-container" id="miniScreenContainer">
+      <iframe id="miniIframePlayer" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="origin"></iframe>
+    </div>
+    <div class="mini-controls-bar">
+      <button class="mini-ctrl-btn" id="miniPrevBtn" title="Previous Episode"><i data-lucide="skip-back"></i> Prev</button>
+      <button class="mini-ctrl-btn" id="miniNextBtn" title="Next Episode">Next <i data-lucide="skip-forward"></i></button>
+      <span class="mini-server-badge" id="miniServerBadge">VidSrc HD</span>
+    </div>
+  </div>
+
+  <!-- Estimated Airing Schedule Section -->
+  <section class="schedule-section" id="scheduleSection">
+    <div class="schedule-container">
+      <div class="schedule-header">
+        <div class="schedule-title-area">
+          <h2 class="section-title"><i data-lucide="calendar" class="title-icon"></i> Estimated Schedule</h2>
+          <span class="schedule-tz-badge" id="scheduleTzBadge"><i data-lucide="clock"></i> JST (Tokyo)</span>
+        </div>
+        <div class="schedule-days-tabs" id="scheduleDaysTabs">
+          <button class="schedule-day-btn" data-day="monday">Mon</button>
+          <button class="schedule-day-btn" data-day="tuesday">Tue</button>
+          <button class="schedule-day-btn" data-day="wednesday">Wed</button>
+          <button class="schedule-day-btn" data-day="thursday">Thu</button>
+          <button class="schedule-day-btn" data-day="friday">Fri</button>
+          <button class="schedule-day-btn" data-day="saturday">Sat</button>
+          <button class="schedule-day-btn" data-day="sunday">Sun</button>
+        </div>
+      </div>
+      <div class="schedule-grid" id="scheduleGrid">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Authentic HiAnime A-Z List Strip -->
+  <div class="block_area-az" id="azListSection">
+    <div class="az-container">
+      <div class="az-header">
+        <span class="ftaz">A-Z LIST</span>
+        <span class="size-s">Searching anime order by alphabet name A to Z.</span>
+      </div>
+      <div class="az-list" id="azListButtons">
+        <button type="button" class="az-btn active" data-letter="all">All</button>
+        <button type="button" class="az-btn" data-letter="0-9">0-9</button>
+        <button type="button" class="az-btn" data-letter="A">A</button>
+        <button type="button" class="az-btn" data-letter="B">B</button>
+        <button type="button" class="az-btn" data-letter="C">C</button>
+        <button type="button" class="az-btn" data-letter="D">D</button>
+        <button type="button" class="az-btn" data-letter="E">E</button>
+        <button type="button" class="az-btn" data-letter="F">F</button>
+        <button type="button" class="az-btn" data-letter="G">G</button>
+        <button type="button" class="az-btn" data-letter="H">H</button>
+        <button type="button" class="az-btn" data-letter="I">I</button>
+        <button type="button" class="az-btn" data-letter="J">J</button>
+        <button type="button" class="az-btn" data-letter="K">K</button>
+        <button type="button" class="az-btn" data-letter="L">L</button>
+        <button type="button" class="az-btn" data-letter="M">M</button>
+        <button type="button" class="az-btn" data-letter="N">N</button>
+        <button type="button" class="az-btn" data-letter="O">O</button>
+        <button type="button" class="az-btn" data-letter="P">P</button>
+        <button type="button" class="az-btn" data-letter="Q">Q</button>
+        <button type="button" class="az-btn" data-letter="R">R</button>
+        <button type="button" class="az-btn" data-letter="S">S</button>
+        <button type="button" class="az-btn" data-letter="T">T</button>
+        <button type="button" class="az-btn" data-letter="U">U</button>
+        <button type="button" class="az-btn" data-letter="V">V</button>
+        <button type="button" class="az-btn" data-letter="W">W</button>
+        <button type="button" class="az-btn" data-letter="X">X</button>
+        <button type="button" class="az-btn" data-letter="Y">Y</button>
+        <button type="button" class="az-btn" data-letter="Z">Z</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authentic HiAnime Footer -->
+  <footer class="footer" id="footer">
+    <div class="footer-container">
+      <div class="footer-top-brand">
+        <a href="./" class="brand-logo">
+          <span class="logo-hi">Hi</span><span class="logo-anime">Anime</span>
+          <span class="logo-domain">.to</span>
+        </a>
+        <div class="footer-joingroup">
+          <div class="joingroup-title">
+            <span class="top">Join now</span>
+            <span class="bottom">HiAnime Group</span>
+          </div>
+          <div class="joingroup-socials">
+            <a href="https://discord.com/invite/qCMd54VQUv" target="_blank" rel="noopener" class="social-pill dc-pill" title="Discord"><i data-lucide="message-square"></i> Discord</a>
+            <a href="https://t.me/hianimeat" target="_blank" rel="noopener" class="social-pill tl-pill" title="Telegram"><i data-lucide="send"></i> Telegram</a>
+            <a href="https://reddit.com/r/HiAnimeZone" target="_blank" rel="noopener" class="social-pill rd-pill" title="Reddit"><i data-lucide="share-2"></i> Reddit</a>
+            <a href="https://x.com/hianimeat" target="_blank" rel="noopener" class="social-pill tw-pill" title="Twitter/X"><i data-lucide="twitter"></i> Twitter</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-links-row">
+        <a href="#" class="footer-link" data-action="tos">Terms of service</a>
+        <a href="#" class="footer-link" data-action="dmca">DMCA</a>
+        <a href="#" class="footer-link" data-action="contact">Contact Us</a>
+        <a href="#" class="footer-link" data-action="app-info">Android App</a>
+        <a href="https://hianime.pw/" target="_blank" rel="noopener" class="footer-link">Mirrors</a>
+        <a href="#" class="footer-link" data-action="airing">Top Airing</a>
+        <a href="#" class="footer-link" data-action="popular">Most Popular</a>
+      </div>
+
+      <div class="about-text">
+        <p>HiAnime is a free anime streaming website with zero ads. Watch high quality anime online without registration.</p>
+        <p class="copyright">HiAnime does not store any files on our server, we only linked to the media which is hosted on 3rd party services. &copy; HiAnime.to. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  
+  <!-- Otaku Achievements Modal -->
+  <div class="player-modal achievements-modal" id="achievementsModal" style="display:none;">
+    <div class="player-overlay" id="achievementsOverlay"></div>
+    <div class="player-container achievements-container">
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2><i data-lucide="award" style="color:var(--accent-cyan);vertical-align:middle;"></i> Otaku Achievements & Badges</h2>
+          <span class="ep-crumb">Unlock Badges by Streaming, Curating, and Dominating Anime</span>
+        </div>
+        <button class="close-modal-btn" id="closeAchievementsBtn" title="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="achievements-body">
+        <div class="xp-hero-card">
+          <div class="xp-hero-top">
+            <span class="xp-level-huge" id="heroLevelText">Level 1</span>
+            <span class="xp-rank-huge" id="heroRankText">Academy Student</span>
+          </div>
+          <div class="xp-progress-bar-wrap">
+            <div class="xp-progress-bar-fill" id="heroXpBarFill" style="width: 0%;"></div>
+          </div>
+          <div class="xp-meta-text" id="heroXpMetaText">0 / 100 XP to Chunin Watcher</div>
+        </div>
+        <div class="achievements-grid" id="achievementsGrid">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Otaku Trivia Minigame Modal -->
+  <div class="player-modal quiz-modal" id="quizModal" style="display:none;">
+    <div class="player-overlay" id="quizOverlay"></div>
+    <div class="player-container quiz-container">
+      <div class="player-header quiz-header">
+        <div class="player-title-info">
+          <h2><i data-lucide="gamepad-2" style="color:var(--accent-pink);vertical-align:middle;"></i> Otaku Trivia Challenge</h2>
+          <span class="ep-crumb">Test Your Anime Knowledge & Earn Otaku XP</span>
+        </div>
+        <div class="quiz-header-stats">
+          <span class="quiz-score-badge"><i data-lucide="zap"></i> Score: <strong id="quizScoreText">0</strong></span>
+          <span class="quiz-streak-badge"><i data-lucide="flame"></i> Streak: <strong id="quizStreakText">x1.0</strong></span>
+        </div>
+        <button class="close-modal-btn" id="closeQuizBtn" title="Exit Quiz"><i data-lucide="x"></i></button>
+      </div>
+      <div class="quiz-body" id="quizBody">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Signature HiAnime Hover Quick-Preview Popover (Qtip) -->
+  <div id="animeHoverQtip" class="anime-hover-qtip" role="tooltip"></div>
+
+  <!-- Gamepad / TV Spatial Navigation HUD Bar -->
+  <div id="controllerHudBar" class="controller-hud-bar">
+    <span><span class="controller-btn-prompt">A</span> Select / Play</span>
+    <span><span class="controller-btn-prompt">B</span> Back / Close</span>
+    <span><span class="controller-btn-prompt">X</span> +Watchlist / Skip OP</span>
+    <span><span class="controller-btn-prompt">Y</span> Search</span>
+    <span><span class="controller-btn-prompt">LB/RB</span> Prev/Next</span>
+  </div>
+
+  <!-- Plyr HTML5 Player Engine -->
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+  <script src="./data/anime-data.js?v=15.0"></script>
+  <script src="./app.js?v=15.0"></script>
+  <div id="hianimeToastContainer" class="toast-container" style="position:fixed; bottom:24px; right:24px; z-index:999999; display:flex; flex-direction:column; gap:10px; pointer-events:none;"></div>
+
+  <!-- Otaku Tier List Builder Modal -->
+  <div class="player-modal tier-list-modal" id="tierListModal" style="display:none;">
+    <div class="player-overlay" id="tierListOverlay"></div>
+    <div class="player-container tier-list-container">
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2><i data-lucide="layers" style="color:var(--accent-cyan);vertical-align:middle;"></i> Otaku Anime Tier List Maker</h2>
+          <span class="ep-crumb">Rank Your Favorite Shows (S, A, B, C, D) & Export Custom HD Card</span>
+        </div>
+        <button class="close-modal-btn" id="closeTierListBtn" title="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="tier-toolbar">
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button type="button" class="btn-primary" id="exportTierListBtn" style="padding:6px 14px; font-size:0.85rem;"><i data-lucide="download"></i> Export HD Image (.PNG)</button>
+          <button type="button" class="manga-tool-btn" id="resetTierListBtn"><i data-lucide="rotate-ccw"></i> Reset Board</button>
+        </div>
+        <span style="font-size:0.8rem; color:var(--text-muted);"><i data-lucide="mouse-pointer"></i> Drag or Click to place in Tier</span>
+      </div>
+      <div class="tier-board" id="tierBoard">
+        <!-- S, A, B, C, D Rows rendered by JS -->
+      </div>
+      <div class="tier-pool-section">
+        <div class="tier-pool-header">
+          <h4><i data-lucide="grid"></i> Unranked Anime Pool (<span id="tierPoolCount">0</span> shows)</h4>
+          <input type="text" id="tierPoolSearch" placeholder="Search unranked..." style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; padding:4px 10px; font-size:0.8rem; outline:none;">
+        </div>
+        <div class="tier-pool-grid" id="tierPoolGrid">
+          <!-- Injected by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AniList & MAL Two-Way Importer & Backup Modal -->
+  <div class="player-modal import-export-modal" id="listImportExportModal" style="display:none;">
+    <div class="player-overlay" id="importExportOverlay"></div>
+    <div class="player-container import-export-container">
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2><i data-lucide="upload-cloud" style="color:var(--accent-cyan);vertical-align:middle;"></i> MyAnimeList & AniList Data Bridge</h2>
+          <span class="ep-crumb">Import or Export Your Watchlist, Ratings & History Without Logins</span>
+        </div>
+        <button class="close-modal-btn" id="closeImportExportBtn" title="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="import-drop-zone" id="importDropZone">
+        <i data-lucide="file-up" style="display:block; margin:0 auto 10px auto; width:36px; height:36px; color:var(--accent-cyan);"></i>
+        <p><strong>Drop your AniList JSON or MyAnimeList XML file here</strong></p>
+        <small>or click to browse from your device</small>
+        <input type="file" id="importFileInput" accept=".json,.xml" style="display:none;">
+      </div>
+      <div class="import-actions-row">
+        <button type="button" class="btn-primary" id="exportHiAnimeBackupBtn"><i data-lucide="download"></i> Download HiAnime Backup (.JSON)</button>
+        <button type="button" class="manga-tool-btn" id="exportHiAnimeCsvBtn"><i data-lucide="file-spreadsheet"></i> Export Watchlist (.CSV)</button>
+      </div>
+      <div class="import-log-box" id="importLogBox" style="display:none;">
+        <!-- Live sync logs -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Character & Voice Actor Deep-Dive Bio Modal -->
+  <div class="player-modal character-bio-modal" id="characterBioModal" style="display:none;">
+    <div class="player-overlay" id="characterBioOverlay"></div>
+    <div class="player-container character-bio-container">
+      <div class="player-header">
+        <div class="player-title-info">
+          <h2 id="charBioTitle">Character Profile</h2>
+          <span class="ep-crumb" id="charBioSubtitle">Voice Actor & Character Lore</span>
+        </div>
+        <button class="close-modal-btn" id="closeCharBioBtn" title="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="character-bio-grid">
+        <div class="character-bio-left">
+          <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>" alt="Character" id="charBioPoster" class="character-bio-poster">
+          <div class="seiyuu-card" id="charSeiyuuCard">
+            <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'></svg>" alt="Seiyuu" id="charSeiyuuImg">
+            <div class="seiyuu-info">
+              <h5 id="charSeiyuuName">Voice Actor</h5>
+              <span id="charSeiyuuRole">Japanese Seiyuu</span>
+            </div>
+          </div>
+        </div>
+        <div class="character-bio-right">
+          <h3 id="charBioName">Character Name</h3>
+          <span class="char-role-badge" id="charBioRoleBadge">MAIN CHARACTER</span>
+          <p class="character-bio-text" id="charBioAbout">Character background and summary.</p>
+          <div class="character-roles-title">Other Iconic Roles by this Seiyuu</div>
+          <div class="character-other-roles-grid" id="charOtherRolesGrid">
+            <!-- Other roles -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
