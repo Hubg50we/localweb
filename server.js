@@ -226,6 +226,13 @@ app.get('/api/anime/:id/episode/:epNumber/servers', (req, res) => {
   res.json({ success: true, animeTitle: (anime && anime.title) || 'Anime', episode: ep, servers });
 });
 
+function withTimeout(promise, ms = 2000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Upstream timeout')), ms))
+  ]);
+}
+
 // 6. GET /api/stream/:animeSlug/:ep - Dynamic Stream Resolver Endpoint via Consumet & Scrapers
 app.get('/api/stream/:animeSlug/:ep', async (req, res) => {
   const { animeSlug, ep } = req.params;
@@ -236,11 +243,11 @@ app.get('/api/stream/:animeSlug/:ep', async (req, res) => {
     // 1. Try Consumet AniList parser with anilist_id
     if (anime && anime.anilist_id) {
       try {
-        const info = await anilist.fetchAnimeInfo(String(anime.anilist_id));
+        const info = await withTimeout(anilist.fetchAnimeInfo(String(anime.anilist_id)), 2000);
         if (info && info.episodes && info.episodes.length > 0) {
           const targetEp = info.episodes.find(e => e.number === epNum) || info.episodes[epNum - 1];
           if (targetEp && targetEp.id) {
-            const sources = await anilist.fetchEpisodeSources(targetEp.id);
+            const sources = await withTimeout(anilist.fetchEpisodeSources(targetEp.id), 2000);
             if (sources && sources.sources && sources.sources.length > 0) {
               const defaultSource = sources.sources.find(s => s.quality === 'default' || s.isM3U8) || sources.sources[0];
               return res.json({
@@ -263,7 +270,7 @@ app.get('/api/stream/:animeSlug/:ep', async (req, res) => {
     if (aniCli && typeof aniCli.fetchStreamDirect === 'function') {
       try {
         const searchTitle = (anime && anime.title) || animeSlug;
-        const scrapeResult = await aniCli.fetchStreamDirect(searchTitle, epNum);
+        const scrapeResult = await withTimeout(aniCli.fetchStreamDirect(searchTitle, epNum), 2000);
         if (scrapeResult && scrapeResult.streamUrl) {
           return res.json({
             success: true,
@@ -307,7 +314,7 @@ app.get('/api/sources/archive', async (req, res) => {
     const searchUrl = `https://archive.org/advancedsearch.php?q=title:(${encodeURIComponent(title)})+AND+mediatype:(movies)&fl[]=identifier,title,description&output=json&rows=5`;
     const searchRes = await fetch(searchUrl, {
       headers: { 'User-Agent': 'HiAnime-Universal/11.0' },
-      signal: AbortSignal.timeout(9000)
+      signal: AbortSignal.timeout(3000)
     }).catch(() => null);
 
     if (!searchRes || !searchRes.ok) {
@@ -323,7 +330,7 @@ app.get('/api/sources/archive', async (req, res) => {
       const identifier = doc.identifier;
       const metaRes = await fetch(`https://archive.org/metadata/${encodeURIComponent(identifier)}`, {
         headers: { 'User-Agent': 'HiAnime-Universal/11.0' },
-        signal: AbortSignal.timeout(9000)
+        signal: AbortSignal.timeout(3000)
       }).catch(() => null);
 
       if (!metaRes || !metaRes.ok) continue;
