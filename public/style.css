@@ -5385,3 +5385,152 @@ html, body {
   font-size: 0.8rem;
   color: #fff;
 }
+
+
+/* ====================================================
+   Authentic HiAnime A-Z List Strip & Signature Footer
+   ==================================================== */
+.block_area-az {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  padding: 24px 0;
+  margin-top: 40px;
+}
+.az-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.az-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.az-header .ftaz {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--accent-pink);
+  letter-spacing: 0.5px;
+}
+.az-header .size-s {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.az-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.az-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 32px;
+  padding: 0 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.az-btn:hover,
+.az-btn.active {
+  background: var(--accent-pink);
+  color: #111;
+  border-color: var(--accent-pink);
+  font-weight: 700;
+  transform: translateY(-1px);
+}
+
+/* Authentic HiAnime Footer Styling */
+.footer {
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
+  padding: 40px 20px 30px;
+}
+.footer-top-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+.footer-joingroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.joingroup-title {
+  display: flex;
+  flex-direction: column;
+}
+.joingroup-title .top {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.joingroup-title .bottom {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+.joingroup-socials {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.social-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  transition: var(--transition);
+}
+.dc-pill { background: #5865f2; }
+.tl-pill { background: #0088cc; }
+.rd-pill { background: #ff4500; }
+.tw-pill { background: #1da1f2; }
+.social-pill:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+}
+.footer-links-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 0;
+}
+.footer-links-row .footer-link {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+.footer-links-row .footer-link:hover {
+  color: var(--accent-pink);
+}
+.about-text {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+.about-text .copyright {
+  margin-top: 6px;
+  color: var(--text-muted);
+}

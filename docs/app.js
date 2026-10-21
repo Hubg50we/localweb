@@ -1415,6 +1415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadData();
   renderRecommendationsRow();
   await initSchedule();
+  initAzList();
 
   // v15.0 UI Setup
   setupMangaReaderControls();
@@ -6374,4 +6375,36 @@ function initAiringCountdowns() {
 
   setInterval(updateTicker, 1000);
   updateTicker();
+}
+
+
+// HiAnime A-Z List Alphabet Filter Engine
+function initAzList() {
+  const azButtons = document.querySelectorAll('.az-btn');
+  if (!azButtons || azButtons.length === 0) return;
+
+  azButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      azButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const letter = btn.dataset.letter;
+
+      let filtered = [];
+      if (letter === 'all') {
+        filtered = currentAnimeList;
+      } else if (letter === '0-9') {
+        filtered = currentAnimeList.filter(a => /^[0-9]/.test((a.title || '').trim()));
+      } else {
+        filtered = currentAnimeList.filter(a => (a.title || '').trim().toUpperCase().startsWith(letter.toUpperCase()));
+      }
+
+      renderAnimeGrid(filtered);
+      showToast(letter === 'all' ? 'Showing all anime' : `Showing anime starting with "${letter}"`, 'info', 1800);
+
+      const grid = document.getElementById('animeGrid');
+      if (grid) {
+        window.scrollTo({ top: grid.offsetTop - 120, behavior: 'smooth' });
+      }
+    });
+  });
 }
