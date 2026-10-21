@@ -337,11 +337,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Fetch Data from Backend API (with fallback to local script dataset)
 async function loadData() {
   const isStatic = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
+  const localList = (typeof animeData !== 'undefined' && Array.isArray(animeData) && animeData.length > 0)
+    ? animeData
+    : (typeof animeDatabase !== 'undefined' && Array.isArray(animeDatabase) ? animeDatabase : []);
   
   // Render immediately with local dataset so there is zero initial delay
-  if (typeof animeDatabase !== 'undefined' && animeDatabase.length > 0) {
-    currentAnimeList = animeDatabase;
-    currentSpotlights = animeDatabase.filter(a => a.spotlight);
+  if (localList.length > 0) {
+    currentAnimeList = localList;
+    currentSpotlights = localList.filter(a => a.spotlight);
     const top10Data = [...currentAnimeList].sort((a, b) => parseFloat(b.rating || 0) - parseFloat(a.rating || 0)).slice(0, 10);
     renderSpotlight(currentSpotlights);
     renderTrendingRail(currentAnimeList);
@@ -362,8 +365,8 @@ async function loadData() {
 
     if (animeRes && animeRes.success && animeRes.data) {
       currentAnimeList = animeRes.data;
-    } else if (typeof animeDatabase !== 'undefined') {
-      currentAnimeList = animeDatabase;
+    } else if (localList.length > 0) {
+      currentAnimeList = localList;
     }
 
     if (spotlightRes && spotlightRes.success && spotlightRes.data) {
@@ -381,9 +384,9 @@ async function loadData() {
     if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.warn('API fetch error, using local fallback:', err);
-    if (typeof animeDatabase !== 'undefined') {
-      currentAnimeList = animeDatabase;
-      currentSpotlights = animeDatabase.filter(a => a.spotlight);
+    if (localList.length > 0) {
+      currentAnimeList = localList;
+      currentSpotlights = localList.filter(a => a.spotlight);
       renderSpotlight(currentSpotlights);
       renderTrendingRail(currentAnimeList);
       renderAnimeGrid(currentAnimeList);

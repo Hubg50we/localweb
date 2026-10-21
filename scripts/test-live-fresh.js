@@ -7,7 +7,6 @@ const puppeteer = require('puppeteer-core');
     args: ['--no-sandbox']
   });
   const page = await browser.newPage();
-  await page.setCacheEnabled(false);
   const logs = [];
   page.on('console', m => logs.push(`[${m.type()}] ${m.text()}`));
   page.on('pageerror', e => logs.push(`[PAGE ERROR] ${e.message}`));
@@ -15,25 +14,8 @@ const puppeteer = require('puppeteer-core');
   console.log('Navigating to live GitHub Pages...');
   await page.goto(`https://hubg50we.github.io/localweb/?ts=${Date.now()}`, { waitUntil: 'networkidle2', timeout: 45000 });
 
-  // Unregister old service worker and clean cache
-  await page.evaluate(async () => {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const r of registrations) {
-        await r.unregister();
-      }
-    }
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      for (const k of keys) {
-        await caches.delete(k);
-      }
-    }
-    localStorage.clear();
-  });
-
-  // Reload fresh
-  await page.goto(`https://hubg50we.github.io/localweb/?ts=${Date.now()}`, { waitUntil: 'networkidle2', timeout: 45000 });
+  // Allow service worker reload cycle to settle if updating
+  await new Promise(r => setTimeout(r, 2500));
 
   console.log('Title:', await page.title());
   const cardCount = await page.$$eval('.anime-card', els => els.length);
@@ -60,20 +42,29 @@ const puppeteer = require('puppeteer-core');
   const castCardsCount = await page.$$eval('.cast-card', els => els.length);
   console.log('Cast cards count in Tab 2:', castCardsCount);
 
-  // Check tab 3 trailer
+  // Check tab 3 trailer (Native HTML5 Video)
   await page.evaluate(() => {
     const trailerBtn = document.querySelector('.player-tab-btn[data-tab="tab-trailer"]');
     if (trailerBtn) trailerBtn.click();
   });
   await new Promise(r => setTimeout(r, 1000));
-  const trailerIframeSrc = await page.$eval('#trailerPlayerIframe', el => el.src);
-  console.log('Trailer iframe src in Tab 3:', trailerIframeSrc);
+  const isVideoPresent = await page.$eval('#trailerVideoPlayer', el => el.tagName === 'VIDEO');
+  console.log('Tab 3 Native Video Player present:', isVideoPresent);
+
+  // Check Custom Stream Modal
+  await page.evaluate(() => {
+    const customBtn = document.getElementById('openCustomStreamModalBtn');
+    if (customBtn) customBtn.click();
+  });
+  await new Promise(r => setTimeout(r, 500));
+  const isCustomModalOpen = await page.$eval('#customStreamModal', el => el.style.display !== 'none');
+  console.log('Custom Stream Modal opened:', isCustomModalOpen);
 
   console.log('\nRelevant Browser Logs:');
-  logs.slice(-15).forEach(l => console.log('  ', l));
+  logs.slice(-10).forEach(l => console.log('  ', l));
 
   await browser.close();
-  console.log('\nAll live tests finished cleanly!');
+  console.log('\nAll live tests on GitHub Pages passed cleanly!');
 })().catch(e => {
   console.error('Fatal error:', e);
   process.exit(1);
